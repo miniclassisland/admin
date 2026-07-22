@@ -31,10 +31,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // 初始化：从 localStorage 读取 token 并探测权限
     useEffect(() => {
-        // 如果是 /auth 页面，直接让出控制权，由该页面完成 token 写入与刷新跳转
-        if (typeof window !== "undefined" && (window.location.pathname === "/auth" || window.location.pathname === "/auth/")) {
-            setLoading(false);
-            setInitialized(true);
+        // 如果是 /auth 或 /oobe 页面，直接让出控制权，由该页面完成 token 写入与刷新跳转或初始化
+        if (typeof window !== "undefined" && (
+            window.location.pathname === "/auth" || window.location.pathname === "/auth/" ||
+            window.location.pathname === "/oobe" || window.location.pathname === "/oobe/"
+        )) {
+            setTimeout(() => {
+                setLoading(false);
+                setInitialized(true);
+            }, 0);
             return;
         }
 
@@ -45,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             window.location.href = getMainSiteUrl();
             return;
         }
-        setTokenState(stored);
+        setTimeout(() => setTokenState(stored), 0);
 
         console.log("Probing admin API...");
         adminApi.probe()
