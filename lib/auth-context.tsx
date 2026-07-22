@@ -44,13 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const stored = getToken();
-        if (!stored) {
-            // 无 token，直接跳转主站
-            console.log("No token, redirecting to main site...");
-            window.location.href = getMainSiteUrl();
-            return;
+        if (stored) {
+            setTimeout(() => setTokenState(stored), 0);
         }
-        setTimeout(() => setTokenState(stored), 0);
 
         console.log("Probing admin API...");
         adminApi.probe()
@@ -60,9 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 setLoading(false);
                 setInitialized(true);
             })
-            .catch((err) => {
-                // 无超管权限或 Token 失效，跳回主站
+            .catch((err: unknown) => {
                 console.error("Probe failed:", err);
+                const errObj = err as { status?: number; code?: string; detail?: { code?: string } } | null;
+                const isOobe = errObj?.status === 503 || errObj?.code === "ERR_SYSTEM_OOBE" || errObj?.detail?.code === "ERR_SYSTEM_OOBE";
+                if (isOobe) {
+                    if (typeof window !== "undefined" && window.location.pathname !== "/oobe" && !window.location.pathname.startsWith("/oobe")) {
+                        window.location.href = "/oobe";
+                    }
+                    return;
+                }
                 clearToken();
                 window.location.href = getMainSiteUrl();
             });
