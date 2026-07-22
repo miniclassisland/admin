@@ -111,6 +111,12 @@ export default function OobePage() {
             <div style={{ width: "100%", maxWidth: 480, padding: 20 }}>
                 <div className="card" style={{ padding: 40, boxShadow: "0 4px 16px rgba(0, 0, 0, 0.04)" }}>
                     <div style={{ textAlign: "center", marginBottom: 24 }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src="/icon.svg"
+                            alt="MINI ClassIsland Logo"
+                            style={{ width: 64, height: 64, marginBottom: 12, display: "inline-block" }}
+                        />
                         <h1 className="title" style={{ fontSize: 22, fontWeight: 600, margin: "0 0 6px 0" }}>MINI ClassIsland</h1>
                         <p className="subtitle" style={{ color: "var(--text-secondary)", fontSize: 13, margin: 0 }}>OOBE 首次开机配置向导</p>
                     </div>
