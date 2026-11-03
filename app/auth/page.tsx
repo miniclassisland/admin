@@ -3,7 +3,7 @@
 /**
  * Auth Token 接收页。
  *
- * 从 CIMS-web 跳转而来，URL 带 ?token=xxx，
+ * 从 MINI ClassIsland Web 跳转而来，URL 带 ?token=xxx，
  * 存入 localStorage 后跳转到管理面板首页。
  */
 

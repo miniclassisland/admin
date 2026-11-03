@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import "./globals.css";
 import Providers from "@/components/Providers";
-import AdminShell from "@/components/AdminShell";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MINI ClassIsland 超管面板",
-  description: "ClassIsland Management Service - 超级管理员平台",
+  title: "MINI ClassIsland 超级管理平台",
+  description: "MINI ClassIsland 集中管理平台 - 超级管理员控制台",
   icons: {
     icon: "/icon.svg",
   },
@@ -18,12 +17,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <head>
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-      </head>
       <body>
         <Providers>
-          <AdminShell>{children}</AdminShell>
+          {children}
         </Providers>
       </body>
     </html>

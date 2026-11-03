@@ -1,16 +1,21 @@
 "use client";
 
 /**
- * 系统设置页面。
+ * MINI ClassIsland 超级管理平台 — 系统参数设置页面。
  * 调用 Admin API: GET /settings, POST /settings
  */
 
 import React, { useEffect, useState } from "react";
 import { adminApi } from "@/lib/api";
-import { SETTINGS_LABELS } from "@/lib/types";
+import { SETTINGS_LABELS, SETTINGS_ALLOWED_KEYS } from "@/lib/types";
 import {
-    Button, Spinner, Input, Switch,
-    MessageBar, MessageBarBody,
+    Button,
+    Spinner,
+    Input,
+    Switch,
+    Select,
+    MessageBar,
+    MessageBarBody,
 } from "@fluentui/react-components";
 import { Save24Regular } from "@fluentui/react-icons";
 
@@ -37,7 +42,7 @@ export default function SettingsPage() {
             }
             setSettings(mapped);
         } catch (e) {
-            setError(e instanceof Error ? e.message : "加载失败");
+            setError(e instanceof Error ? e.message : "加载系统设置失败");
         } finally {
             setLoading(false);
         }
@@ -54,8 +59,14 @@ export default function SettingsPage() {
         setError(null);
         setSuccessMsg(null);
         try {
-            await adminApi.updateSettings({ items: settings });
-            setSuccessMsg("设置已保存");
+            const filteredSettings: Record<string, string> = {};
+            for (const key of SETTINGS_ALLOWED_KEYS) {
+                if (key in settings) {
+                    filteredSettings[key] = settings[key];
+                }
+            }
+            await adminApi.updateSettings({ items: filteredSettings });
+            setSuccessMsg("系统参数设置已保存");
             setDirty(false);
         } catch (e) {
             setError(e instanceof Error ? e.message : "保存失败");
@@ -76,8 +87,8 @@ export default function SettingsPage() {
         <div className="fade-in">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">系统设置</h1>
-                    <p className="page-subtitle">管理全平台系统配置</p>
+                    <h1 className="page-title">系统参数设置</h1>
+                    <p className="page-subtitle">配置 MINI ClassIsland 平台全局注册策略、默认权限与通知公告</p>
                 </div>
                 <Button
                     appearance="primary"
@@ -103,7 +114,7 @@ export default function SettingsPage() {
 
             <div className="card">
                 <div className="settings-section">
-                    <div className="settings-section-title">注册与审核</div>
+                    <div className="settings-section-title">注册、租户与全局公告配置</div>
 
                     {Object.entries(SETTINGS_LABELS).map(([key, meta]) => (
                         <div className="settings-item" key={key}>
@@ -124,11 +135,21 @@ export default function SettingsPage() {
                                         onChange={(_, d) => updateSetting(key, d.value)}
                                         style={{ width: 120 }}
                                     />
+                                ) : key === "default_role" ? (
+                                    <Select
+                                        value={settings[key] || "normal"}
+                                        onChange={(_, d) => updateSetting(key, d.value)}
+                                    >
+                                        <option value="normal">普通用户 (normal)</option>
+                                        <option value="admin">管理员 (admin)</option>
+                                        <option value="pending">待审核 (pending)</option>
+                                    </Select>
                                 ) : (
                                     <Input
                                         value={settings[key] || ""}
                                         onChange={(_, d) => updateSetting(key, d.value)}
-                                        style={{ width: 240 }}
+                                        style={{ width: 320 }}
+                                        placeholder="输入系统公告内容..."
                                     />
                                 )}
                             </div>
