@@ -48,7 +48,9 @@ export default function OobePage() {
             });
 
             const data = await res.json();
-            if (res.ok && data.token) {
+            if (res.status === 429) {
+                showStatus(data.msg || data.detail || "请求过于频繁（HTTP 429），当前 IP 已被安全限流保护，请稍后再试", "error");
+            } else if (res.ok && data.token) {
                 setOobeToken(data.token);
                 showStatus("配对码校验成功，正在载入配置向导...", "success");
                 setTimeout(() => {
@@ -56,7 +58,7 @@ export default function OobePage() {
                     showStatus("", "");
                 }, 400);
             } else {
-                showStatus(data.detail || "验证失败：配对码错误或已失效", "error");
+                showStatus(data.detail || data.msg || "验证失败：配对码错误或已失效", "error");
             }
         } catch (err: unknown) {
             const errObj = err as { message?: string } | null;
@@ -94,14 +96,16 @@ export default function OobePage() {
             });
 
             const data = await res.json();
-            if (res.ok) {
+            if (res.status === 429) {
+                showStatus(data.msg || data.detail || "请求过于频繁（HTTP 429），当前 IP 已被安全限流保护，请稍后再试", "error");
+            } else if (res.ok) {
                 showStatus("核心结构部署成功，正在热重启服务器程序...", "success");
                 setTimeout(() => {
                     setStep(3);
                     showStatus("", "");
                 }, 800);
             } else {
-                showStatus(data.detail || "核心系统初始化失败。", "error");
+                showStatus(data.detail || data.msg || "核心系统初始化失败。", "error");
             }
         } catch (err: unknown) {
             const errObj = err as { message?: string } | null;

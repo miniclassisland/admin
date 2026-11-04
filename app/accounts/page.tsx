@@ -6,7 +6,9 @@
  */
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { adminApi } from "@/lib/api";
+import { useAccount } from "@/lib/account-context";
 import type {
     AccountOut,
     AccountCreateRequest,
@@ -39,6 +41,7 @@ import {
     Delete24Regular,
     DataUsage24Regular,
     Copy24Regular,
+    Settings24Regular,
 } from "@fluentui/react-icons";
 
 const REG_MODE_LABELS: Record<string, string> = {
@@ -48,6 +51,8 @@ const REG_MODE_LABELS: Record<string, string> = {
 };
 
 export default function AdminAccountsPage() {
+    const router = useRouter();
+    const { switchAccount, refreshAccounts } = useAccount();
     const [accountsList, setAccountsList] = useState<AccountOut[]>([]);
     const [filtered, setFiltered] = useState<AccountOut[]>([]);
     const [loading, setLoading] = useState(true);
@@ -97,6 +102,7 @@ export default function AdminAccountsPage() {
         try {
             const list = await adminApi.listAccounts();
             setAccountsList(list);
+            await refreshAccounts();
         } catch (e) {
             setError(e instanceof Error ? e.message : "加载账户失败");
         } finally {
@@ -314,6 +320,18 @@ export default function AdminAccountsPage() {
                                     <td>
                                         <div className="flex gap-4">
                                             <Button
+                                                appearance="primary"
+                                                size="small"
+                                                icon={<Settings24Regular />}
+                                                title="进入该租户的集控管理后台（编辑课表、时间表、科目、策略、客户端等）"
+                                                onClick={() => {
+                                                    switchAccount(acct.id);
+                                                    router.push("/dashboard");
+                                                }}
+                                            >
+                                                进入集控编辑
+                                            </Button>
+                                            <Button
                                                 appearance="subtle"
                                                 size="small"
                                                 icon={<DataUsage24Regular />}
@@ -498,9 +516,13 @@ export default function AdminAccountsPage() {
                                                             <Input
                                                                 type="number"
                                                                 value={String(draftVal)}
-                                                                onChange={(_, d) =>
-                                                                    setQuotaDraft(prev => ({ ...prev, [key]: Number(d.value) || 0 }))
-                                                                }
+                                                                onChange={(_, d) => {
+                                                                    const parsed = Number(d.value);
+                                                                    setQuotaDraft(prev => ({
+                                                                        ...prev,
+                                                                        [key]: Number.isNaN(parsed) ? 0 : parsed,
+                                                                    }));
+                                                                }}
                                                                 style={{ width: 120 }}
                                                             />
                                                         )}

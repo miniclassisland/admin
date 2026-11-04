@@ -3,35 +3,46 @@
 /**
  * Admin 认证上下文。
  *
- * 不含登录/注册流程 — token 由 /auth 页面从 URL 参数注入。
- * 启动时探测 Admin API `/` 端点验证超管权限，
- * 无权限则跳转回主站。
+ * 启动时探测 Admin API `/` 端点验证超管权限，并拉取当前登录的超级管理员用户信息 (`userInfo.get()`)。
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { adminApi, getToken, clearToken, getMainSiteUrl } from "./api";
+import { adminApi, userInfo, getToken, clearToken, getMainSiteUrl } from "./api";
+import type { UserOut } from "./types";
 
 interface AuthState {
     /** 是否已认证且为超管 */
     isAuthenticated: boolean;
     /** 当前 token */
     token: string | null;
+    /** 当前登录的超管用户信息 */
+    user: UserOut | null;
     /** 正在加载（探测权限中） */
     loading: boolean;
     /** 登出（清 token 并跳回主站） */
     logout: () => void;
+    /** 重新拉取当前超管用户信息 */
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [token, setTokenState] = useState<string | null>(null);
+    const [user, setUser] = useState<UserOut | null>(null);
     const [loading, setLoading] = useState(true);
     const [initialized, setInitialized] = useState(false);
 
-    // 初始化：从 localStorage 读取 token 并探测权限
+    const refreshUser = useCallback(async () => {
+        try {
+            const u = await userInfo.get();
+            setUser(u);
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
     useEffect(() => {
-        // 如果是 /auth 或 /oobe 页面，直接让出控制权，由该页面完成 token 写入与刷新跳转或初始化
         if (typeof window !== "undefined" && (
             window.location.pathname === "/auth" || window.location.pathname === "/auth/" ||
             window.location.pathname === "/oobe" || window.location.pathname === "/oobe/"
@@ -48,22 +59,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setTimeout(() => setTokenState(stored), 0);
         }
 
-        console.log("Probing admin API...");
         adminApi.probe()
-            .then(() => {
-                // 权限验证通过
-                console.log("Probe success");
+            .then(async () => {
+                try {
+                    const u = await userInfo.get();
+                    setUser(u);
+                } catch {
+                    /* ignore */
+                }
                 setLoading(false);
                 setInitialized(true);
             })
             .catch((err: unknown) => {
-                console.error("Probe failed:", err);
                 const errObj = err as { status?: number; code?: string; detail?: { code?: string } } | null;
                 const isOobe = errObj?.status === 503 || errObj?.code === "ERR_SYSTEM_OOBE" || errObj?.detail?.code === "ERR_SYSTEM_OOBE";
                 if (isOobe) {
                     if (typeof window !== "undefined" && window.location.pathname !== "/oobe" && !window.location.pathname.startsWith("/oobe")) {
                         window.location.href = "/oobe";
                     }
+                    return;
+                }
+                if (errObj?.status === 429) {
+                    setLoading(false);
+                    setInitialized(true);
                     return;
                 }
                 clearToken();
@@ -74,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const logout = useCallback(() => {
         clearToken();
         setTokenState(null);
+        setUser(null);
         window.location.href = getMainSiteUrl();
     }, []);
 
@@ -83,8 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         <AuthContext.Provider value={{
             isAuthenticated,
             token,
+            user,
             loading,
             logout,
+            refreshUser,
         }}>
             {children}
         </AuthContext.Provider>
