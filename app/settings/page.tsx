@@ -141,7 +141,6 @@ export default function SettingsPage() {
                                         onChange={(_, d) => updateSetting(key, d.value)}
                                     >
                                         <option value="normal">普通用户 (normal)</option>
-                                        <option value="admin">管理员 (admin)</option>
                                         <option value="pending">待审核 (pending)</option>
                                     </Select>
                                 ) : (

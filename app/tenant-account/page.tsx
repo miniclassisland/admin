@@ -16,10 +16,12 @@ import { useRouter } from "next/navigation";
 import DownloadPresetPopoverButton from "@/components/DownloadPresetPopoverButton";
 
 export default function TenantAccountPage() {
-    const { accountId, currentAccount, refreshAccounts } = useAccount();
+    const { accountId, currentAccount, refreshAccounts, switchAccount } = useAccount();
     const router = useRouter();
     const [accountInfo, setAccountInfo] = useState<AccountOut | null>(null);
     const [loading, setLoading] = useState(true);
+    const [editingId, setEditingId] = useState(false);
+    const [newId, setNewId] = useState("");
     const [editingName, setEditingName] = useState(false);
     const [newName, setNewName] = useState("");
     const [editingSlug, setEditingSlug] = useState(false);
@@ -62,13 +64,31 @@ export default function TenantAccountPage() {
         loadData();
     }, [loadData]);
 
+    async function handleIdChange(e: React.FormEvent) {
+        e.preventDefault();
+        if (!accountId || !newId.trim()) return;
+        setSaving(true);
+        setMsg(null);
+        try {
+            const updated = await adminApi.updateAccount(accountId, { new_id: newId.trim() });
+            setAccountInfo(updated);
+            setEditingId(false);
+            setMsg({ type: "success", text: `租户账户 ID 已更新为 ${updated.id}` });
+            await refreshAccounts();
+            switchAccount(updated.id);
+        } catch (err: unknown) {
+            setMsg({ type: "error", text: err instanceof Error ? err.message : "更新账户 ID 失败" });
+        }
+        setSaving(false);
+    }
+
     async function handleNameChange(e: React.FormEvent) {
         e.preventDefault();
         if (!accountId || !newName.trim()) return;
         setSaving(true);
         setMsg(null);
         try {
-            const updated = await accounts.changeName(accountId, { name: newName.trim() });
+            const updated = await adminApi.updateAccount(accountId, { name: newName.trim() });
             setAccountInfo(updated);
             setEditingName(false);
             setMsg({ type: "success", text: "租户名称已更新" });
@@ -86,7 +106,7 @@ export default function TenantAccountPage() {
         setMsg(null);
         try {
             const payload: SlugUpdate = { slug: newSlug.trim() };
-            const updated = await accounts.changeSlug(accountId, payload);
+            const updated = await adminApi.updateAccount(accountId, payload);
             setAccountInfo(updated);
             setEditingSlug(false);
             setMsg({ type: "success", text: "租户 Slug 已更新" });
@@ -245,7 +265,40 @@ export default function TenantAccountPage() {
 
                         <div className="detail-row">
                             <div className="detail-label">账户 ID</div>
-                            <div className="detail-value" style={{ fontSize: 13 }}>{accountInfo.id}</div>
+                            <div className="detail-value">
+                                {editingId ? (
+                                    <form onSubmit={handleIdChange} className="flex items-center gap-8">
+                                        <Input
+                                            value={newId}
+                                            onChange={(_, d) => setNewId(d.value)}
+                                            placeholder="3-64 位字母/数字/连字符/下划线"
+                                            size="small"
+                                            style={{ minWidth: 260 }}
+                                        />
+                                        <Button appearance="primary" size="small" type="submit" disabled={saving || !newId.trim()}>
+                                            保存
+                                        </Button>
+                                        <Button appearance="subtle" size="small" onClick={() => setEditingId(false)}>
+                                            取消
+                                        </Button>
+                                    </form>
+                                ) : (
+                                    <span className="flex items-center gap-8">
+                                        <span className="api-key-cell" style={{ fontSize: 13 }}>{accountInfo.id}</span>
+                                        <Button
+                                            appearance="subtle"
+                                            size="small"
+                                            icon={<Edit24Regular />}
+                                            onClick={() => {
+                                                setNewId(accountInfo.id);
+                                                setEditingId(true);
+                                            }}
+                                        >
+                                            修改 ID
+                                        </Button>
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         <div className="detail-row">

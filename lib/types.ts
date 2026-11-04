@@ -139,10 +139,15 @@ export interface AccountCreateRequest {
 }
 
 export interface AccountUpdateRequest {
+    new_id?: string;
     name?: string;
     slug?: string;
     is_active?: boolean;
     registration_mode?: RegistrationMode;
+}
+
+export interface AccountIdUpdate {
+    new_id: string;
 }
 
 export interface SlugUpdate {
@@ -332,6 +337,7 @@ export interface BatchOperation {
 
 export interface BatchRequest {
     operations: BatchOperation[];
+    target_account_id?: string;
 }
 
 export interface ClientBatchRequest {

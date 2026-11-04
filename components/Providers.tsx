@@ -8,7 +8,9 @@ import {
     SSRProvider,
     RendererProvider,
     createDOMRenderer,
+    renderToStyleElements,
 } from "@fluentui/react-components";
+import { useServerInsertedHTML } from "next/navigation";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { AccountProvider } from "@/lib/account-context";
 import { ThemeModeProvider, useThemeMode } from "@/lib/theme-context";
@@ -27,6 +29,10 @@ const customDarkTheme = {
     ...webDarkTheme,
     fontFamilyBase: FONT_STACK,
     fontFamilyMonospace: MONO_FONT_STACK,
+    colorNeutralForegroundOnBrand: "#ffffff",
+    colorBrandBackground: "#2899f5",
+    colorBrandBackgroundHover: "#4baeff",
+    colorBrandBackgroundPressed: "#0078d4",
 };
 
 function AccountWrapper({ children }: { children: React.ReactNode }) {
@@ -58,6 +64,13 @@ function FluentThemeWrapper({ children }: { children: React.ReactNode }) {
 
 export default function Providers({ children }: { children: React.ReactNode }) {
     const renderer = useMemo(() => createDOMRenderer(), []);
+    const didRenderRef = React.useRef(false);
+
+    useServerInsertedHTML(() => {
+        if (didRenderRef.current) return;
+        didRenderRef.current = true;
+        return <>{renderToStyleElements(renderer)}</>;
+    });
 
     return (
         <RendererProvider renderer={renderer}>

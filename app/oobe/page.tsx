@@ -72,8 +72,15 @@ export default function OobePage() {
 
     async function handleConfigure(e: React.FormEvent) {
         e.preventDefault();
-        if (password.trim().length < 8) {
-            showStatus("管理员初始密码至少需要 8 位字符", "error");
+        const trimmedPwd = password.trim();
+        if (
+            trimmedPwd.length < 12 ||
+            !/[A-Z]/.test(trimmedPwd) ||
+            !/[a-z]/.test(trimmedPwd) ||
+            !/[0-9]/.test(trimmedPwd) ||
+            !/[^A-Za-z0-9]/.test(trimmedPwd)
+        ) {
+            showStatus("管理员初始密码至少需要 12 位字符，且必须包含大写字母、小写字母、数字和特殊字符", "error");
             return;
         }
         setLoading(true);
@@ -212,15 +219,7 @@ export default function OobePage() {
                     )}
 
                     {statusText && (
-                        <div style={{
-                            marginTop: 16,
-                            padding: "10px 14px",
-                            borderRadius: 4,
-                            fontSize: 13,
-                            background: statusType === "error" ? "#fde7e9" : "#dff6dd",
-                            borderLeft: `3px solid ${statusType === "error" ? "var(--danger-color)" : "var(--success-color)"}`,
-                            color: statusType === "error" ? "#a80000" : "#107c10",
-                        }}>
+                        <div className={`oobe-alert-banner ${statusType === "error" ? "is-error" : "is-success"}`}>
                             {statusText}
                         </div>
                     )}

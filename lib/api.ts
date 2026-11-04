@@ -10,6 +10,7 @@ import type {
     AccountCreate,
     AccountCreateRequest,
     AccountUpdateRequest,
+    AccountIdUpdate,
     SlugUpdate,
     AccountNameUpdate,
     QuotaOut,
@@ -51,6 +52,7 @@ import type {
 // ============================================================
 
 const STORAGE_KEY_TOKEN = "miniclassisland_auth_token";
+const STORAGE_KEY_ACCOUNT = "miniclassisland_current_account_id";
 
 /** Admin API 基础地址 */
 export function getAdminUrl(): string {
@@ -69,20 +71,40 @@ export function getServerUrl(): string {
     return getAdminUrl();
 }
 
-/** 主站地址（无权限或返回主面板时跳转） */
+const TRUSTED_DOMAIN_RE = /^(?:[a-z0-9-]+\.)*miniclassisland\.com$/i;
+
+/** 主站地址（无权限或返回主面板时跳转，带严格域名白名单校验防止 Open Redirect） */
 export function getMainSiteUrl(): string {
     const envUrl = process.env.NEXT_PUBLIC_MAIN_SITE_URL;
-    if (envUrl) return envUrl;
-    if (typeof window !== "undefined") {
-        const { protocol, hostname, port, host } = window.location;
-        if (port === "27043") {
-            return `${protocol}//${hostname}:27042`;
-        }
-        if (hostname.startsWith("admin.")) {
-            return `${protocol}//${host.replace(/^admin\./, "")}`;
+    if (envUrl) {
+        try {
+            const parsed = new URL(envUrl);
+            if (
+                parsed.hostname === "localhost" ||
+                parsed.hostname === "127.0.0.1" ||
+                TRUSTED_DOMAIN_RE.test(parsed.hostname)
+            ) {
+                return parsed.origin;
+            }
+        } catch {
+            /* ignore invalid URL */
         }
     }
-    return "/";
+    if (typeof window !== "undefined") {
+        const { protocol, hostname, port } = window.location;
+        if (hostname === "localhost" || hostname === "127.0.0.1") {
+            if (port === "27043") return `${protocol}//${hostname}:27042`;
+            if (port === "3001") return `${protocol}//${hostname}:3000`;
+            return `${protocol}//${hostname}${port ? `:${port}` : ""}`;
+        }
+        if (hostname.startsWith("admin.")) {
+            const baseDomain = hostname.replace(/^admin\./i, "");
+            if (/^[a-z0-9.-]+$/i.test(baseDomain)) {
+                return `${protocol}//dash.${baseDomain}${port ? `:${port}` : ""}`;
+            }
+        }
+    }
+    return "https://dash.miniclassisland.com";
 }
 
 export function getToken(): string | null {
@@ -96,6 +118,7 @@ export function setToken(token: string): void {
 
 export function clearToken(): void {
     localStorage.removeItem(STORAGE_KEY_TOKEN);
+    localStorage.removeItem(STORAGE_KEY_ACCOUNT);
 }
 
 // ============================================================
@@ -306,6 +329,8 @@ export const token = {
     refresh: () => post<TokenResponse>("/token/refresh"),
     verify: () => post<unknown>("/token/verify"),
     deactivate: () => post<MessageResponse>("/token/deactivate"),
+    exchange: () => post<{ code: string }>("/token/exchange"),
+    redeem: (code: string) => post<TokenResponse>("/token/redeem", { code }),
 };
 
 export const userInfo = {
@@ -334,6 +359,10 @@ export const accounts = {
     apply: (data: AccountCreate) => post<AccountOut>("/account/create", data),
     delete: (accountId: string) => del<unknown>(`/account/${encodeURIComponent(accountId)}`),
     info: (accountId: string) => get<AccountOut>(`/account/${encodeURIComponent(accountId)}`),
+    updateInfo: (accountId: string, data: AccountUpdateRequest) =>
+        post<AccountOut>(`/account/${encodeURIComponent(accountId)}/info`, data),
+    changeId: (accountId: string, data: AccountIdUpdate) =>
+        post<AccountOut>(`/account/${encodeURIComponent(accountId)}/info/id`, data),
     changeSlug: (accountId: string, data: SlugUpdate) =>
         post<AccountOut>(`/account/${encodeURIComponent(accountId)}/info/slug`, data),
     changeName: (accountId: string, data: AccountNameUpdate) =>
@@ -452,7 +481,7 @@ export const data = {
     read: (accountId: string, type: ResourceType, name: string) =>
         get<unknown>(`${acctPath(accountId)}/${type}/${encodeURIComponent(name)}`),
     batch: (accountId: string, ops: BatchRequest) =>
-        post<unknown>(`${acctPath(accountId)}/batch`, ops),
+        post<unknown>(`${acctPath(accountId)}/batch`, { ...ops, target_account_id: accountId }),
 };
 
 export const credentials = {
@@ -527,8 +556,11 @@ export const audit = {
 };
 
 export const bulk = {
-    execute: (ops: BatchRequest) =>
-        post<unknown>("/account/bulk", ops),
+    execute: (ops: BatchRequest, accountId?: string) =>
+        post<unknown>(
+            accountId ? `${acctPath(accountId)}/batch` : "/bulk",
+            accountId ? { ...ops, target_account_id: accountId } : ops
+        ),
 };
 
 // ============================================================

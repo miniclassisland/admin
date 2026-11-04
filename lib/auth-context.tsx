@@ -7,7 +7,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { adminApi, userInfo, getToken, clearToken, getMainSiteUrl } from "./api";
+import { adminApi, userInfo, token as tokenApi, getToken, clearToken, getMainSiteUrl } from "./api";
 import type { UserOut } from "./types";
 
 interface AuthState {
@@ -89,7 +89,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
     }, []);
 
-    const logout = useCallback(() => {
+    const logout = useCallback(async () => {
+        try {
+            await tokenApi.deactivate();
+        } catch {
+            /* ignore */
+        }
         clearToken();
         setTokenState(null);
         setUser(null);

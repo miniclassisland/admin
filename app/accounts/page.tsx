@@ -348,6 +348,7 @@ export default function AdminAccountsPage() {
                                                 onClick={() => {
                                                     setEditAccount(acct);
                                                     setEditForm({
+                                                        new_id: acct.id,
                                                         name: acct.name,
                                                         slug: acct.slug,
                                                         is_active: acct.is_active,
@@ -422,6 +423,15 @@ export default function AdminAccountsPage() {
                         <DialogBody>
                             <DialogTitle>编辑租户账户: {editAccount.name}</DialogTitle>
                             <DialogContent>
+                                <div className="form-group">
+                                    <Label>账户 ID (唯一标识)</Label>
+                                    <Input
+                                        value={editForm.new_id ?? editAccount.id}
+                                        onChange={(_, d) => setEditForm({ ...editForm, new_id: d.value })}
+                                        style={{ width: "100%" }}
+                                    />
+                                    <div className="form-hint">3-64 位字母、数字、连字符或下划线，修改后将自动同步关联数据</div>
+                                </div>
                                 <div className="form-group">
                                     <Label>租户名称</Label>
                                     <Input

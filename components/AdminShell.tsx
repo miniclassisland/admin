@@ -11,7 +11,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAccount } from "@/lib/account-context";
 import { ThemeModeToggle } from "@/lib/theme-context";
-import { getMainSiteUrl } from "@/lib/api";
+import { getMainSiteUrl, getToken, token as tokenApi } from "@/lib/api";
 import { REGISTRATION_MODE_LABELS } from "@/lib/types";
 import { Spinner, Button, Select, Badge } from "@fluentui/react-components";
 import RateLimitBanner from "./RateLimitBanner";
@@ -38,6 +38,8 @@ import {
     PeopleAdd24Regular,
     DataBarVertical24Regular,
     BuildingMultiple24Regular,
+    Navigation24Regular,
+    Dismiss24Regular,
 } from "@fluentui/react-icons";
 
 interface NavItem {
@@ -106,6 +108,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const { accounts, currentAccount, accountId, switchAccount } = useAccount();
     const pathname = usePathname();
     const router = useRouter();
+    const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        setMobileMenuOpen(false);
+    }, [pathname, accountId]);
 
     if (pathname === "/auth" || pathname === "/auth/" || pathname.startsWith("/oobe")) {
         return (
@@ -143,10 +150,32 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         p === "/" ? pathname === "/" || pathname === "" : pathname === p || pathname.startsWith(p + "/")
     );
 
+    async function handleReturnToMainSite(e?: React.MouseEvent) {
+        if (e) e.preventDefault();
+        const mainUrl = getMainSiteUrl();
+        if (getToken()) {
+            try {
+                const { code } = await tokenApi.exchange();
+                window.location.href = `${mainUrl.replace(/\/$/, "")}/auth#code=${encodeURIComponent(code)}`;
+                return;
+            } catch {
+                /* fallback to direct main site navigation */
+            }
+        }
+        window.location.href = mainUrl;
+    }
+
     return (
         <div className="app-shell">
             <RateLimitBanner />
-            <aside className="sidebar">
+            {mobileMenuOpen && (
+                <div
+                    className="sidebar-backdrop"
+                    onClick={() => setMobileMenuOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
+            <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
                 <div className="sidebar-brand">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -154,7 +183,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         alt="MINI ClassIsland"
                         style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0 }}
                     />
-                    <span>MINI ClassIsland 超管</span>
+                    <span style={{ flex: 1 }}>MINI ClassIsland 超管</span>
+                    <button
+                        type="button"
+                        className="mobile-drawer-close"
+                        onClick={() => setMobileMenuOpen(false)}
+                        aria-label="关闭导航菜单"
+                    >
+                        <Dismiss24Regular />
+                    </button>
                 </div>
 
                 {/* 超管全局租户快速切换器 */}
@@ -221,6 +258,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                     <a
                         className="sidebar-item"
                         href={getMainSiteUrl()}
+                        onClick={handleReturnToMainSite}
                     >
                         <ArrowLeft24Regular />
                         <span>返回集控主面板</span>
@@ -231,6 +269,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <div className="main-area">
                 <header className="topbar">
                     <div className="topbar-left">
+                        <button
+                            type="button"
+                            className="mobile-menu-btn"
+                            onClick={() => setMobileMenuOpen((v) => !v)}
+                            aria-label="打开导航菜单"
+                            title="导航菜单"
+                        >
+                            <Navigation24Regular />
+                        </button>
                         <span className="topbar-brand">MINI ClassIsland</span>
                         <span className="topbar-sep">/</span>
                         <span className="topbar-account" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -239,8 +286,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         </span>
                         {currentAccount && (
                             <>
-                                <span className="topbar-sep">/</span>
-                                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                                <span className="topbar-sep topbar-tenant-sep">/</span>
+                                <span className="topbar-tenant-info" style={{ fontSize: 13, color: "var(--text-secondary)" }}>
                                     当前接管租户：<strong style={{ color: "var(--text-primary)" }}>{currentAccount.name}</strong>
                                     <span className="api-key-cell" style={{ marginLeft: 6 }}>{currentAccount.slug}</span>
                                 </span>
@@ -253,7 +300,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                             appearance="subtle"
                             size="small"
                             icon={<ArrowLeft24Regular />}
-                            onClick={() => { window.location.href = getMainSiteUrl(); }}
+                            onClick={() => { void handleReturnToMainSite(); }}
                         >
                             集控主面板
                         </Button>
