@@ -15,6 +15,7 @@ import { getMainSiteUrl, getToken, token as tokenApi } from "@/lib/api";
 import { REGISTRATION_MODE_LABELS } from "@/lib/types";
 import { Spinner, Button, Select, Badge } from "@fluentui/react-components";
 import RateLimitBanner from "./RateLimitBanner";
+import SponsorBanner from "./SponsorBanner";
 import {
     Board24Regular,
     People24Regular,
@@ -314,9 +315,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         </Button>
                     </div>
                 </header>
-                <div className="sponsor-banner" role="region" aria-label="赞助致谢">
-                    感谢智教联盟对本项目的赞助和支持
-                </div>
+                <SponsorBanner variant="top" />
 
                 <main className="main-content" key={isGlobalPage ? "global" : accountId}>
                     {/* 当处于嵌套的租户集控页面时，顶部展示超管跨租户接管横幅 */}
