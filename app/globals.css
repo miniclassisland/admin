@@ -552,6 +552,7 @@ pre {
 /* ===== 主内容区 ===== */
 .main-area {
   flex: 1;
+  min-width: 0;
   margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
@@ -560,9 +561,11 @@ pre {
 
 .main-content {
   flex: 1;
+  min-width: 0;
   padding: 24px 32px;
   max-width: 1400px;
   width: 100%;
+  overflow-x: hidden;
 }
 
 /* ===== 页面标题栏 ===== */
@@ -570,6 +573,7 @@ pre {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   margin-bottom: 20px;
   gap: 16px;
 }
@@ -593,6 +597,10 @@ pre {
   border-radius: var(--radius-md);
   padding: 20px;
   box-shadow: var(--shadow-sm);
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .card+.card {
@@ -606,6 +614,8 @@ pre {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* ===== 统计卡片网格 ===== */
@@ -622,6 +632,7 @@ pre {
   border-radius: var(--radius-md);
   padding: 18px 20px;
   box-shadow: var(--shadow-sm);
+  min-width: 0;
 }
 
 .stat-label {
@@ -636,9 +647,17 @@ pre {
   color: var(--text-primary);
 }
 
-/* ===== 表格 ===== */
+/* ===== 表格与自适应横向滚动容器 ===== */
+.table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .data-table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
 }
 
@@ -648,6 +667,7 @@ pre {
   text-align: left;
   border-bottom: 1px solid var(--border-color);
   font-size: 13.5px;
+  vertical-align: middle;
 }
 
 .data-table th {
@@ -657,6 +677,11 @@ pre {
   text-transform: uppercase;
   letter-spacing: 0.3px;
   background: #fafafa;
+  white-space: nowrap;
+}
+
+.data-table td:last-child {
+  white-space: nowrap;
 }
 
 .data-table tr:hover td {
@@ -863,11 +888,22 @@ pre {
   display: flex;
   gap: 24px;
   align-items: flex-start;
+  min-width: 0;
+}
+
+.profile-split-layout > div {
+  min-width: 0;
 }
 
 .profile-split-sidebar {
   width: 260px;
   flex-shrink: 0;
+}
+
+@media (max-width: 1200px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .mobile-menu-btn,

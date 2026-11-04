@@ -73,17 +73,35 @@ export function getServerUrl(): string {
 
 const TRUSTED_DOMAIN_RE = /^(?:[a-z0-9-]+\.)*miniclassisland\.com$/i;
 
+function isTrustedTargetHost(targetHost: string): boolean {
+    if (
+        targetHost === "localhost" ||
+        targetHost === "127.0.0.1" ||
+        TRUSTED_DOMAIN_RE.test(targetHost)
+    ) {
+        return true;
+    }
+    const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || "").trim().toLowerCase();
+    if (baseDomain && (targetHost === baseDomain || targetHost.endsWith(`.${baseDomain}`))) {
+        return true;
+    }
+    if (typeof window !== "undefined") {
+        const currentHost = window.location.hostname.toLowerCase();
+        const rootDomain = currentHost.replace(/^(admin|dash|dashboard|api)\./i, "");
+        if (rootDomain && (targetHost === rootDomain || targetHost.endsWith(`.${rootDomain}`))) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** 主站地址（无权限或返回主面板时跳转，带严格域名白名单校验防止 Open Redirect） */
 export function getMainSiteUrl(): string {
     const envUrl = process.env.NEXT_PUBLIC_MAIN_SITE_URL;
     if (envUrl) {
         try {
             const parsed = new URL(envUrl);
-            if (
-                parsed.hostname === "localhost" ||
-                parsed.hostname === "127.0.0.1" ||
-                TRUSTED_DOMAIN_RE.test(parsed.hostname)
-            ) {
+            if (isTrustedTargetHost(parsed.hostname.toLowerCase())) {
                 return parsed.origin;
             }
         } catch {
@@ -97,12 +115,14 @@ export function getMainSiteUrl(): string {
             if (port === "3001") return `${protocol}//${hostname}:3000`;
             return `${protocol}//${hostname}${port ? `:${port}` : ""}`;
         }
-        if (hostname.startsWith("admin.")) {
-            const baseDomain = hostname.replace(/^admin\./i, "");
-            if (/^[a-z0-9.-]+$/i.test(baseDomain)) {
-                return `${protocol}//dash.${baseDomain}${port ? `:${port}` : ""}`;
-            }
+        const baseDomain = hostname.replace(/^admin\./i, "");
+        if (/^[a-z0-9.-]+$/i.test(baseDomain)) {
+            return `${protocol}//dash.${baseDomain}${port ? `:${port}` : ""}`;
         }
+    }
+    const configuredBase = (process.env.NEXT_PUBLIC_BASE_DOMAIN || "").trim();
+    if (configuredBase && /^[a-z0-9.-]+$/i.test(configuredBase)) {
+        return `https://dash.${configuredBase}`;
     }
     return "https://dash.miniclassisland.com";
 }
