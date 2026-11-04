@@ -88,7 +88,11 @@ function isTrustedTargetHost(targetHost: string): boolean {
     if (typeof window !== "undefined") {
         const currentHost = window.location.hostname.toLowerCase();
         const rootDomain = currentHost.replace(/^(admin|dash|dashboard|api)\./i, "");
-        if (rootDomain && (targetHost === rootDomain || targetHost.endsWith(`.${rootDomain}`))) {
+        if (
+            rootDomain &&
+            rootDomain.includes(".") &&
+            (targetHost === rootDomain || targetHost.endsWith(`.${rootDomain}`))
+        ) {
             return true;
         }
     }
@@ -233,7 +237,7 @@ async function request<T>(
     if (res.status === 401) {
         if (typeof window !== "undefined") {
             clearToken();
-            window.location.href = getMainSiteUrl();
+            window.location.href = `${getMainSiteUrl()}/login?expired=1`;
         }
         throw new ApiError(res.status, "未授权或登录已过期");
     }

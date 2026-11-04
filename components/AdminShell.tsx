@@ -183,7 +183,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         alt="MINI ClassIsland"
                         style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0 }}
                     />
-                    <span style={{ flex: 1 }}>MINI ClassIsland 超管</span>
+                    <span style={{ flex: 1 }}>MINI ClassIsland</span>
                     <button
                         type="button"
                         className="mobile-drawer-close"
@@ -314,6 +314,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         </Button>
                     </div>
                 </header>
+                <div className="sponsor-banner" role="region" aria-label="赞助致谢">
+                    感谢智教联盟对本项目的赞助和支持
+                </div>
 
                 <main className="main-content" key={isGlobalPage ? "global" : accountId}>
                     {/* 当处于嵌套的租户集控页面时，顶部展示超管跨租户接管横幅 */}

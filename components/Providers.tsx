@@ -50,6 +50,7 @@ function FluentThemeWrapper({ children }: { children: React.ReactNode }) {
     const { resolvedTheme } = useThemeMode();
     return (
         <FluentProvider
+            key={resolvedTheme}
             theme={resolvedTheme === "dark" ? customDarkTheme : customLightTheme}
             style={{ minHeight: "100vh", background: "var(--bg-primary)", color: "var(--text-primary)" }}
         >

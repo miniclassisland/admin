@@ -224,6 +224,9 @@ export default function OobePage() {
                         </div>
                     )}
                 </div>
+                <div className="login-sponsor-banner" role="region" aria-label="赞助致谢">
+                    感谢智教联盟对本项目的赞助和支持
+                </div>
             </div>
         </div>
     );
