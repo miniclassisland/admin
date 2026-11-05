@@ -1,5 +1,12 @@
 # MINI ClassIsland Admin (`miniclassisland-admin`)
 
+<p align="center">
+  <a href="https://miniclassisland.com" target="_blank" rel="noopener noreferrer">
+    <img src="assets/miniclassisland.png" alt="MINI ClassIsland Logo" width="128" height="128" />
+  </a>
+</p>
+
+
 > **MINI ClassIsland** 超级管理员全局治理控制台（`admin.miniclassisland.com`）  
 > 基于 Next.js 16 + React 19 + Fluent UI v9 构建的平台级多租户运营与安全治理中心。
 
