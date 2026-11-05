@@ -27,10 +27,6 @@ export default function SettingsPage() {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [dirty, setDirty] = useState(false);
 
-    useEffect(() => {
-        loadSettings();
-    }, []);
-
     async function loadSettings() {
         setLoading(true);
         setError(null);
@@ -47,6 +43,10 @@ export default function SettingsPage() {
             setLoading(false);
         }
     }
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
 
     function updateSetting(key: string, value: string) {
         setSettings(prev => ({ ...prev, [key]: value }));
