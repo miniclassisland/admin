@@ -24,8 +24,8 @@ import {
     DialogContent,
     DialogActions,
     Label,
-    Select,
 } from "@fluentui/react-components";
+import { Select } from "@/components/CustomSelect";
 import {
     Edit24Regular,
     Delete24Regular,

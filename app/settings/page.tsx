@@ -13,10 +13,10 @@ import {
     Spinner,
     Input,
     Switch,
-    Select,
     MessageBar,
     MessageBarBody,
 } from "@fluentui/react-components";
+import { Select } from "@/components/CustomSelect";
 import { Save24Regular } from "@fluentui/react-icons";
 
 export default function SettingsPage() {

@@ -13,7 +13,8 @@ import { useAccount } from "@/lib/account-context";
 import { ThemeModeToggle } from "@/lib/theme-context";
 import { getMainSiteUrl, getToken, token as tokenApi } from "@/lib/api";
 import { REGISTRATION_MODE_LABELS } from "@/lib/types";
-import { Spinner, Button, Select, Badge } from "@fluentui/react-components";
+import { Spinner, Button, Badge } from "@fluentui/react-components";
+import { Select } from "./CustomSelect";
 import RateLimitBanner from "./RateLimitBanner";
 import {
     Board24Regular,

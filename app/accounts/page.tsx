@@ -23,7 +23,6 @@ import {
     Input,
     Button,
     Switch,
-    Select,
     Label,
     MessageBar,
     MessageBarBody,
@@ -34,6 +33,7 @@ import {
     DialogContent,
     DialogActions,
 } from "@fluentui/react-components";
+import { Select } from "@/components/CustomSelect";
 import {
     Search24Regular,
     Add24Regular,

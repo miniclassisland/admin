@@ -5,9 +5,10 @@ import { twoFA, userInfo } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import type { TotpEnableResponse, TotpDisableRequest } from "@/lib/types";
 import {
-    Button, Input, Spinner, Select,
+    Button, Input, Spinner,
     MessageBar, MessageBarBody,
 } from "@fluentui/react-components";
+import { Select } from "@/components/CustomSelect";
 import QRCode from "qrcode";
 import { ShieldKeyhole24Regular, Person24Regular, Key24Regular } from "@fluentui/react-icons";
 
