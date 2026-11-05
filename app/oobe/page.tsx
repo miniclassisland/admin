@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Spinner, Input, Button, Label } from "@fluentui/react-components";
 import { CheckmarkCircle24Filled, Settings24Regular } from "@fluentui/react-icons";
 import { getAdminUrl, getMainSiteUrl } from "@/lib/api";
-import SponsorBanner from "@/components/SponsorBanner";
 
 export default function OobePage() {
     const [step, setStep] = useState(1);
@@ -225,7 +224,6 @@ export default function OobePage() {
                         </div>
                     )}
                 </div>
-                <SponsorBanner variant="card" />
             </div>
         </div>
     );

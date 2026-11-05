@@ -44,6 +44,7 @@ export interface UserOut {
 
 export interface UserUpdateRequest {
     username?: string | null;
+    email?: string | null;
     display_name?: string | null;
     role_code?: string | null;
     is_active?: boolean | null;
@@ -902,3 +903,20 @@ export const SETTINGS_LABELS: Record<string, { label: string; hint: string; type
 export const WEEKDAY_LABELS = [
     "周日", "周一", "周二", "周三", "周四", "周五", "周六"
 ];
+
+export interface ResourceHistoryItem {
+    version: number;
+    name: string;
+    resource_type: string;
+    updated_at: string;
+    size_bytes: number;
+    is_current: boolean;
+}
+
+export interface ResourceHistoryVersionOut {
+    version: number;
+    name: string;
+    resource_type: string;
+    updated_at: string;
+    content: unknown;
+}

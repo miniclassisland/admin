@@ -15,7 +15,6 @@ import { getMainSiteUrl, getToken, token as tokenApi } from "@/lib/api";
 import { REGISTRATION_MODE_LABELS } from "@/lib/types";
 import { Spinner, Button, Select, Badge } from "@fluentui/react-components";
 import RateLimitBanner from "./RateLimitBanner";
-import SponsorBanner from "./SponsorBanner";
 import {
     Board24Regular,
     People24Regular,
@@ -279,11 +278,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         >
                             <Navigation24Regular />
                         </button>
-                        <span className="topbar-brand">MINI ClassIsland</span>
-                        <span className="topbar-sep">/</span>
                         <span className="topbar-account" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                             <ShieldKeyhole24Regular style={{ fontSize: 16 }} />
-                            超级管理平台
+                            超管平台
                         </span>
                         {currentAccount && (
                             <>
@@ -315,7 +312,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         </Button>
                     </div>
                 </header>
-                <SponsorBanner variant="top" />
 
                 <main className="main-content" key={isGlobalPage ? "global" : accountId}>
                     {/* 当处于嵌套的租户集控页面时，顶部展示超管跨租户接管横幅 */}

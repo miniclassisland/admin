@@ -504,6 +504,10 @@ export const data = {
         patch<StatusResponse>(`${acctPath(accountId)}/${type}/update?name=${encodeURIComponent(name)}`, payload),
     read: (accountId: string, type: ResourceType, name: string) =>
         get<unknown>(`${acctPath(accountId)}/${type}/${encodeURIComponent(name)}`),
+    listHistory: (accountId: string, type: ResourceType, name: string) =>
+        get<import("./types").ResourceHistoryItem[]>(`${acctPath(accountId)}/${type}/history?name=${encodeURIComponent(name)}`),
+    readHistoryVersion: (accountId: string, type: ResourceType, name: string, version: number) =>
+        get<import("./types").ResourceHistoryVersionOut>(`${acctPath(accountId)}/${type}/history/${version}?name=${encodeURIComponent(name)}`),
     batch: (accountId: string, ops: BatchRequest) =>
         post<unknown>(`${acctPath(accountId)}/batch`, { ...ops, target_account_id: accountId }),
 };

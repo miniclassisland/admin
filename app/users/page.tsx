@@ -314,6 +314,7 @@ export default function AdminUsersPage() {
                                                         setEditUser(u);
                                                         setEditForm({
                                                             username: u.username,
+                                                            email: u.email,
                                                             display_name: u.display_name,
                                                             role_code: u.role_code,
                                                             is_active: u.is_active,
@@ -477,6 +478,15 @@ export default function AdminUsersPage() {
                                     <Input
                                         value={editForm.username || ""}
                                         onChange={(_, d) => setEditForm({ ...editForm, username: d.value })}
+                                        style={{ width: "100%" }}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <Label>绑定邮箱</Label>
+                                    <Input
+                                        type="email"
+                                        value={editForm.email || ""}
+                                        onChange={(_, d) => setEditForm({ ...editForm, email: d.value })}
                                         style={{ width: "100%" }}
                                     />
                                 </div>
