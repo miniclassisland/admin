@@ -26,8 +26,11 @@ export interface UserLoginRequest {
 
 export interface TokenResponse {
     token: string;
+    user_id?: string;
     expires_in?: number;
     token_type?: string;
+    remaining_recovery_codes?: number;
+    require_totp_reset?: boolean;
 }
 
 export interface UserOut {
@@ -49,6 +52,7 @@ export interface UserUpdateRequest {
     role_code?: string | null;
     is_active?: boolean | null;
     can_create_account?: boolean | null;
+    totp_enabled?: boolean | null;
 }
 
 export interface UserRegisterRequest {
@@ -92,7 +96,11 @@ export interface TotpConfirmRequest {
 }
 
 export interface TotpDisableRequest {
-    password: string;
+    password?: string;
+    totp_code?: string;
+    recovery_code?: string;
+    second_recovery_code?: string;
+    recovery_codes?: string[];
 }
 
 export interface TotpVerifyRequest {

@@ -319,6 +319,7 @@ export default function AdminUsersPage() {
                                                             role_code: u.role_code,
                                                             is_active: u.is_active,
                                                             can_create_account: Boolean(u.can_create_account),
+                                                            totp_enabled: Boolean(u.totp_enabled),
                                                         });
                                                     }}
                                                 />
@@ -528,6 +529,30 @@ export default function AdminUsersPage() {
                                         checked={Boolean(editForm.can_create_account)}
                                         onChange={(_, d) => setEditForm({ ...editForm, can_create_account: d.checked })}
                                     />
+                                </div>
+                                <div className="form-group flex items-center justify-between">
+                                    <div>
+                                        <Label style={{ marginBottom: 0 }}>两步验证 (2FA) 状态</Label>
+                                        <div className="form-hint">关闭将清除该用户的 TOTP 绑定与恢复码；开启将为其启用 2FA</div>
+                                    </div>
+                                    <div className="flex items-center gap-8">
+                                        {editForm.totp_enabled && (
+                                            <Button
+                                                size="small"
+                                                appearance="secondary"
+                                                icon={<ShieldKeyhole24Regular />}
+                                                onClick={() => {
+                                                    setEditForm({ ...editForm, totp_enabled: false });
+                                                }}
+                                            >
+                                                重置/解绑 2FA
+                                            </Button>
+                                        )}
+                                        <Switch
+                                            checked={Boolean(editForm.totp_enabled)}
+                                            onChange={(_, d) => setEditForm({ ...editForm, totp_enabled: d.checked })}
+                                        />
+                                    </div>
                                 </div>
                             </DialogContent>
                             <DialogActions>
