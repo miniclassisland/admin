@@ -294,7 +294,7 @@ export default function AdminAccountsPage() {
                                     </td>
                                     <td>
                                         <Badge appearance="outline" color="informative">
-                                            {REG_MODE_LABELS[acct.registration_mode || "open"] || acct.registration_mode || "开放注册"}
+                                            {REG_MODE_LABELS[acct.registration_mode || "pairing"] || acct.registration_mode || "配对码审批"}
                                         </Badge>
                                     </td>
                                     <td>
@@ -352,7 +352,7 @@ export default function AdminAccountsPage() {
                                                         name: acct.name,
                                                         slug: acct.slug,
                                                         is_active: acct.is_active,
-                                                        registration_mode: (acct.registration_mode || "open") as RegistrationMode,
+                                                        registration_mode: (acct.registration_mode || "pairing") as RegistrationMode,
                                                     });
                                                 }}
                                             />
@@ -451,7 +451,7 @@ export default function AdminAccountsPage() {
                                 <div className="form-group">
                                     <Label>终端默认注册接入模式</Label>
                                     <Select
-                                        value={editForm.registration_mode || "open"}
+                                        value={editForm.registration_mode || "pairing"}
                                         onChange={(_, d) => setEditForm({ ...editForm, registration_mode: d.value as RegistrationMode })}
                                     >
                                         <option value="open">开放注册 (Open) — 终端连接即自动接入</option>

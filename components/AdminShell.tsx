@@ -339,7 +339,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                     {currentAccount.is_active ? "账户活跃" : "账户已停用"}
                                 </Badge>
                                 <Badge appearance="outline" color="informative">
-                                    {REGISTRATION_MODE_LABELS[currentAccount.registration_mode || "open"] || "开放接入"}
+                                    {REGISTRATION_MODE_LABELS[currentAccount.registration_mode || "pairing"] || "配对码审批接入"}
                                 </Badge>
                             </div>
                             <div className="flex items-center gap-8">
