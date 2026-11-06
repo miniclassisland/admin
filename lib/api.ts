@@ -885,6 +885,9 @@ export const adminApi = {
     getTicketUnreadCount: () =>
         get<{ count: number }>("/ticket/unread-count"),
 
+    // ---- 系统信息 ----
+    getVersion: () => get<{ version: string }>("/version"),
+
     // ---- 批量操作 ----
     bulk: (ops: unknown) =>
         post<unknown>("/bulk", ops),
