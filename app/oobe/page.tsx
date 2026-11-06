@@ -11,8 +11,8 @@ export default function OobePage() {
     const [oobeToken, setOobeToken] = useState("");
 
     // Form inputs
-    const [dbUrl, setDbUrl] = useState("postgresql+psycopg://postgres:password@localhost:5432/miniclassisland");
-    const [redisUrl, setRedisUrl] = useState("redis://localhost:6379/0");
+    const [dbUrl, setDbUrl] = useState("postgresql+psycopg://miniclassisland@/miniclassisland?host=/var/run/postgresql");
+    const [redisUrl, setRedisUrl] = useState("unix:///run/redis/redis-server.sock?db=0");
     const [domain, setDomain] = useState("miniclassisland.com");
     const [username, setUsername] = useState("admin");
     const [email, setEmail] = useState("admin@miniclassisland.com");
