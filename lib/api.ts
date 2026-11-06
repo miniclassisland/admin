@@ -669,6 +669,9 @@ export const adminApi = {
     updateSettings: (data: Record<string, unknown>) =>
         post<unknown>("/settings", data),
 
+    refreshCommunityCode: () =>
+        post<{ code: string }>("/community/refresh_code"),
+
     // ---- 2FA 管理 ----
     enable2FA: (userId: string) =>
         post<unknown>(`/user/${encodeURIComponent(userId)}/2fa/enable`),
