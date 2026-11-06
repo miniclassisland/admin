@@ -45,6 +45,12 @@ import type {
     ConfigUploadItem,
     AuditLogItem,
     ManagementSettings,
+    TicketCategory,
+    TicketDetail,
+    TicketListResponse,
+    TicketMessage,
+    TicketPriority,
+    TicketStatus,
 } from "./types";
 
 // ============================================================
@@ -681,6 +687,43 @@ export const adminApi = {
 
     reset2FA: (userId: string) =>
         post<unknown>(`/user/${encodeURIComponent(userId)}/2fa/reset`),
+
+    // ---- 工单管理 ----
+    listTickets: (params?: {
+        offset?: number;
+        limit?: number;
+        status?: TicketStatus;
+        priority?: TicketPriority;
+        category?: TicketCategory;
+        q?: string;
+        unreadOnly?: boolean;
+    }) => {
+        const searchParams = new URLSearchParams();
+        if (params?.offset !== undefined) searchParams.set("offset", String(params.offset));
+        if (params?.limit !== undefined) searchParams.set("limit", String(params.limit));
+        if (params?.status) searchParams.set("status", params.status);
+        if (params?.priority) searchParams.set("priority", params.priority);
+        if (params?.category) searchParams.set("category", params.category);
+        if (params?.q?.trim()) searchParams.set("q", params.q.trim());
+        if (params?.unreadOnly) searchParams.set("unread_only", "true");
+        const qs = searchParams.toString();
+        return get<TicketListResponse>(`/ticket/list${qs ? `?${qs}` : ""}`);
+    },
+
+    getTicket: (ticketId: string) =>
+        get<TicketDetail>(`/ticket/${encodeURIComponent(ticketId)}`),
+
+    replyTicket: (ticketId: string, content: string) =>
+        post<TicketMessage>(`/ticket/${encodeURIComponent(ticketId)}/reply`, { content }),
+
+    updateTicket: (
+        ticketId: string,
+        data: { status?: TicketStatus; priority?: TicketPriority },
+    ) =>
+        post<TicketDetail>(`/ticket/${encodeURIComponent(ticketId)}/status`, data),
+
+    getTicketUnreadCount: () =>
+        get<{ count: number }>("/ticket/unread-count"),
 
     // ---- 批量操作 ----
     bulk: (ops: unknown) =>
