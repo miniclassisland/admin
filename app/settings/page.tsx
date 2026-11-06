@@ -13,6 +13,7 @@ import {
     Spinner,
     Input,
     Switch,
+    Textarea,
     MessageBar,
     MessageBarBody,
 } from "@fluentui/react-components";
@@ -158,12 +159,20 @@ export default function SettingsPage() {
                                         <option value="normal">普通用户 (normal)</option>
                                         <option value="pending">待审核 (pending)</option>
                                     </Select>
+                                ) : meta.type === "textarea" ? (
+                                    <Textarea
+                                        value={settings[key] || ""}
+                                        onChange={(_, d) => updateSetting(key, d.value)}
+                                        style={{ width: 320 }}
+                                        rows={3}
+                                        placeholder={meta.placeholder || "输入内容"}
+                                    />
                                 ) : (
                                     <Input
                                         value={settings[key] || ""}
                                         onChange={(_, d) => updateSetting(key, d.value)}
                                         style={{ width: 320 }}
-                                        placeholder="输入系统公告内容..."
+                                        placeholder={meta.placeholder || "输入内容"}
                                     />
                                 )}
                             </div>

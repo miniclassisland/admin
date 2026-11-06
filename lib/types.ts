@@ -847,6 +847,7 @@ export const SETTINGS_ALLOWED_KEYS = [
     "require_approval",
     "max_accounts_per_user",
     "default_role",
+    "announcement_title",
     "motd",
 ] as const;
 
@@ -880,7 +881,7 @@ export interface MessageResponse {
     message: string;
 }
 
-export const SETTINGS_LABELS: Record<string, { label: string; hint: string; type: "boolean" | "number" | "string" }> = {
+export const SETTINGS_LABELS: Record<string, { label: string; hint: string; type: "boolean" | "number" | "string" | "textarea"; placeholder?: string }> = {
     registration_open: {
         label: "开放注册",
         hint: "允许新用户自助注册平台账号",
@@ -901,10 +902,17 @@ export const SETTINGS_LABELS: Record<string, { label: string; hint: string; type
         hint: "新注册用户的默认系统角色代码 (normal / admin)",
         type: "string",
     },
-    motd: {
-        label: "全局公告信息",
-        hint: "显示给所有登录用户的系统通知公告",
+    announcement_title: {
+        label: "站内公告标题",
+        hint: "显示在站内顶部赞助横幅下方；标题和副标题都为空时不显示公告",
         type: "string",
+        placeholder: "输入站内公告标题",
+    },
+    motd: {
+        label: "站内公告副标题/内容",
+        hint: "点击站内公告横幅后展示的具体内容",
+        type: "textarea",
+        placeholder: "输入站内公告详细内容",
     },
 };
 
