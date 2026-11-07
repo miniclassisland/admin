@@ -18,7 +18,7 @@ import {
     MessageBarBody,
 } from "@fluentui/react-components";
 import { Select } from "@/components/CustomSelect";
-import { ArrowSync24Regular, Save24Regular } from "@fluentui/react-icons";
+import { Save24Regular } from "@fluentui/react-icons";
 
 export default function SettingsPage() {
     const [settings, setSettings] = useState<Record<string, string>>({});
@@ -27,7 +27,6 @@ export default function SettingsPage() {
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [dirty, setDirty] = useState(false);
-    const [refreshingCommunity, setRefreshingCommunity] = useState(false);
 
     async function loadSettings() {
         setLoading(true);
@@ -74,20 +73,6 @@ export default function SettingsPage() {
             setError(e instanceof Error ? e.message : "保存失败");
         } finally {
             setSaving(false);
-        }
-    }
-
-    async function handleRefreshCommunityCode() {
-        setRefreshingCommunity(true);
-        setError(null);
-        setSuccessMsg(null);
-        try {
-            await adminApi.refreshCommunityCode();
-            setSuccessMsg("入群密钥已轮换");
-        } catch (e) {
-            setError(e instanceof Error ? e.message : "轮换入群密钥失败");
-        } finally {
-            setRefreshingCommunity(false);
         }
     }
 
@@ -178,27 +163,6 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     ))}
-                </div>
-            </div>
-
-            <div className="card" style={{ marginTop: 16 }}>
-                <div className="settings-section">
-                    <div className="settings-section-title">交流社区</div>
-                    <div className="settings-item">
-                        <div className="settings-item-info">
-                            <div className="settings-item-label">清空待使用入群码</div>
-                            <div className="settings-item-hint">
-                                入群码现按个人用户独立生成（有效期 15 分钟，入群后由机器人自动审核绑定）。点击此按钮可立即作废所有尚未使用的待审入群码。
-                            </div>
-                        </div>
-                        <Button
-                            icon={<ArrowSync24Regular />}
-                            onClick={handleRefreshCommunityCode}
-                            disabled={refreshingCommunity}
-                        >
-                            {refreshingCommunity ? <Spinner size="tiny" /> : "作废所有待审入群码"}
-                        </Button>
-                    </div>
                 </div>
             </div>
         </div>
