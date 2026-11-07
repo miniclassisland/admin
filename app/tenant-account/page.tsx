@@ -154,7 +154,7 @@ export default function TenantAccountPage() {
             }
             const refreshed = await adminApi.getAccountQuotas(accountId);
             setQuotas(refreshed);
-            setMsg({ type: "success", text: "租户设备配额（注册上限 & gRPC 长连接上限）与功能开关已保存生效" });
+            setMsg({ type: "success", text: "租户设备配额与功能开关已保存生效" });
         } catch (err: unknown) {
             setMsg({ type: "error", text: err instanceof Error ? err.message : "保存配额失败" });
         }

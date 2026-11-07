@@ -49,7 +49,7 @@ export default function OobePage() {
 
             const data = await res.json();
             if (res.status === 429) {
-                showStatus(data.msg || data.detail || "请求过于频繁（HTTP 429），当前 IP 已被安全限流保护，请稍后再试", "error");
+                showStatus(data.msg || data.detail || "请求过于频繁，当前 IP 已被安全限流保护，请稍后再试", "error");
             } else if (res.ok && data.token) {
                 setOobeToken(data.token);
                 showStatus("配对码校验成功，正在载入配置向导...", "success");
@@ -104,7 +104,7 @@ export default function OobePage() {
 
             const data = await res.json();
             if (res.status === 429) {
-                showStatus(data.msg || data.detail || "请求过于频繁（HTTP 429），当前 IP 已被安全限流保护，请稍后再试", "error");
+                showStatus(data.msg || data.detail || "请求过于频繁，当前 IP 已被安全限流保护，请稍后再试", "error");
             } else if (res.ok) {
                 showStatus("核心结构部署成功，正在热重启服务器程序...", "success");
                 setTimeout(() => {

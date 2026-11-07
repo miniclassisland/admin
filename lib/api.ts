@@ -225,7 +225,7 @@ export class ApiError extends Error {
             if (code === "ERR_IP_BLOCKED" || msg.includes("IP address temporarily blocked")) {
                 msg = "当前 IP 因短时间内多次异常请求已被安全机制临时封禁（约 5 分钟），请稍后再试";
             } else if (!msg || msg === "请求失败" || msg.startsWith("{")) {
-                msg = "请求过于频繁（HTTP 429），已被安全限流保护拦截，请稍后再试";
+                msg = "请求过于频繁，已被安全限流保护拦截，请稍后再试";
             }
         }
 

@@ -122,7 +122,7 @@ export default function AdminAccountsPage() {
             });
             setShowCreate(false);
             setCreateForm({ name: "", slug: "" });
-            setSuccessMsg(`租户账户 "${created.name}" (${created.slug}) 已创建`);
+            setSuccessMsg(`租户账户 "${created.name}" 已创建`);
             await loadAccounts();
         } catch (e) {
             setError(e instanceof Error ? e.message : "创建账户失败");
@@ -397,7 +397,7 @@ export default function AdminAccountsPage() {
                                         onChange={(_, d) => setCreateForm({ ...createForm, slug: d.value })}
                                         style={{ width: "100%" }}
                                     />
-                                    <div className="form-hint">用于终端接入的子域名标识与多租户隔离标识（默认格式如 account_1234abcd）</div>
+                                    <div className="form-hint">用于终端接入的子域名标识与多租户隔离标识</div>
                                 </div>
                             </DialogContent>
                             <DialogActions>
@@ -569,7 +569,7 @@ export default function AdminAccountsPage() {
                             <DialogTitle>确认删除租户账户</DialogTitle>
                             <DialogContent>
                                 <p>
-                                    确定要删除租户账户 <strong>{deleteTarget.name}</strong>（<code>{deleteTarget.slug}</code>）吗？
+                                    确定要删除租户账户 <strong>{deleteTarget.name}</strong> 吗？
                                     该账户的成员绑定、配额与预注册设备白名单将一并清理，此操作不可撤销。
                                 </p>
                             </DialogContent>
