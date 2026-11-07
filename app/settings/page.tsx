@@ -186,9 +186,9 @@ export default function SettingsPage() {
                     <div className="settings-section-title">交流社区</div>
                     <div className="settings-item">
                         <div className="settings-item-info">
-                            <div className="settings-item-label">轮换入群密钥</div>
+                            <div className="settings-item-label">清空待使用入群码</div>
                             <div className="settings-item-hint">
-                                立即生成新的 QQ 群入群密码；服务重启后也会自动重新生成。
+                                入群码现按个人用户独立生成（有效期 15 分钟，入群后由机器人自动审核绑定）。点击此按钮可立即作废所有尚未使用的待审入群码。
                             </div>
                         </div>
                         <Button
@@ -196,7 +196,7 @@ export default function SettingsPage() {
                             onClick={handleRefreshCommunityCode}
                             disabled={refreshingCommunity}
                         >
-                            {refreshingCommunity ? <Spinner size="tiny" /> : "轮换入群密钥"}
+                            {refreshingCommunity ? <Spinner size="tiny" /> : "作废所有待审入群码"}
                         </Button>
                     </div>
                 </div>

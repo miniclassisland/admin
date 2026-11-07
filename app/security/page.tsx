@@ -10,7 +10,7 @@ import {
 } from "@fluentui/react-components";
 import { Select } from "@/components/CustomSelect";
 import QRCode from "qrcode";
-import { ShieldKeyhole24Regular, Person24Regular, Key24Regular } from "@fluentui/react-icons";
+import { ShieldKeyhole24Regular, Person24Regular, Key24Regular, Copy24Regular } from "@fluentui/react-icons";
 
 type DisableMode = "pwd_totp" | "pwd_recovery" | "totp_recovery" | "two_recovery";
 
@@ -220,6 +220,32 @@ export default function SecurityPage() {
                         个人资料
                     </div>
                     <form onSubmit={handleSaveProfile}>
+                        <div className="form-group">
+                            <label className="form-label">用户 ID (UUID)</label>
+                            <div className="flex items-center gap-8">
+                                <Input
+                                    value={user?.id || ""}
+                                    readOnly
+                                    disabled
+                                    style={{ flex: 1, fontFamily: "var(--font-mono)" }}
+                                />
+                                {user?.id && (
+                                    <Button
+                                        appearance="subtle"
+                                        size="small"
+                                        type="button"
+                                        icon={<Copy24Regular />}
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(user.id);
+                                            setMsg({ type: "success", text: "用户 UUID 已复制到剪贴板" });
+                                        }}
+                                    >
+                                        复制
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="form-hint">用户唯一标识 (UUID) 在生成时已锁定，不可修改</div>
+                        </div>
                         <div className="form-group">
                             <label className="form-label">显示名称</label>
                             <Input

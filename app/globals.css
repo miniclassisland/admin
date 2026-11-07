@@ -47,6 +47,7 @@
   --bg-surface: #ffffff;
   --bg-card: #ffffff;
   --bg-subtle: #fafafa;
+  --bg-secondary: #fafafa;
   --bg-accent-subtle: #eff6fc;
   --bg-banner-gradient: linear-gradient(90deg, #eff6fc 0%, #ffffff 100%);
   --bg-sidebar: #fafafa;
@@ -82,6 +83,7 @@
     --bg-surface: #1e1e1e;
     --bg-card: #1e1e1e;
     --bg-subtle: #252525;
+    --bg-secondary: #252525;
     --bg-accent-subtle: #15293e;
     --bg-banner-gradient: linear-gradient(90deg, #15293e 0%, #1e1e1e 100%);
     --bg-sidebar: #181818;
@@ -113,6 +115,7 @@
   --bg-surface: #1e1e1e;
   --bg-card: #1e1e1e;
   --bg-subtle: #252525;
+  --bg-secondary: #252525;
   --bg-accent-subtle: #15293e;
   --bg-banner-gradient: linear-gradient(90deg, #15293e 0%, #1e1e1e 100%);
   --bg-sidebar: #181818;
@@ -405,6 +408,7 @@ pre {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-end !important;
+  gap: 8px !important;
   width: 100% !important;
   grid-column: 1 / -1 !important;
 }

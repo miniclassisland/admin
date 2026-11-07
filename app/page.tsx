@@ -20,6 +20,7 @@ import {
     DocumentText24Regular,
     Settings24Regular,
     ArrowClockwise24Regular,
+    Headset24Regular,
 } from "@fluentui/react-icons";
 
 function AdminStatCard({
@@ -166,7 +167,7 @@ export default function AdminDashboard() {
                     <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
                         管理全平台所有用户账号、系统角色（普通用户、管理员、超级管理员）、建号权限、两步验证重置以及新用户注册审核。
                     </p>
-                    <div className="flex gap-8">
+                    <div className="flex gap-8" style={{ flexWrap: "wrap" }}>
                         <Link href="/users" style={{ textDecoration: "none" }}>
                             <Button appearance="primary" size="small" icon={<People24Regular />}>
                                 全局用户管理
@@ -175,6 +176,11 @@ export default function AdminDashboard() {
                         <Link href="/pending" style={{ textDecoration: "none" }}>
                             <Button appearance="secondary" size="small" icon={<PersonClock24Regular />}>
                                 注册审核 ({stats?.pending_users ?? 0})
+                            </Button>
+                        </Link>
+                        <Link href="/tickets" style={{ textDecoration: "none" }}>
+                            <Button appearance="secondary" size="small" icon={<Headset24Regular />}>
+                                工单处理
                             </Button>
                         </Link>
                     </div>

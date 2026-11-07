@@ -230,12 +230,12 @@ export default function AdminAccountsPage() {
                 </Button>
             </div>
 
-            <div className="flex items-center gap-8 mb-16">
+            <div className="flex items-center gap-8 mb-16" style={{ flexWrap: "wrap" }}>
                 <Input
                     placeholder="搜索账户名称或子域 Slug..."
                     value={searchQuery}
                     onChange={(_, d) => setSearchQuery(d.value)}
-                    style={{ width: 320 }}
+                    style={{ width: 320, maxWidth: "100%" }}
                     contentBefore={<Search24Regular />}
                 />
                 {searchQuery && (
@@ -267,108 +267,109 @@ export default function AdminAccountsPage() {
                 </div>
             ) : (
                 <div className="card">
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>租户名称</th>
-                                <th>子域名 Slug</th>
-                                <th>终端接入模式</th>
-                                <th>API Key</th>
-                                <th>状态</th>
-                                <th>创建时间</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.length === 0 ? (
+                    <div className="table-container">
+                        <table className="data-table">
+                            <thead>
                                 <tr>
-                                    <td colSpan={7} style={{ textAlign: "center", color: "var(--text-secondary)" }}>
-                                        {searchQuery ? "未找到匹配的账户" : "暂无账户数据"}
-                                    </td>
+                                    <th>租户名称</th>
+                                    <th>子域名 Slug</th>
+                                    <th>终端接入模式</th>
+                                    <th>API Key</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
                                 </tr>
-                            ) : filtered.map(acct => (
-                                <tr key={acct.id}>
-                                    <td style={{ fontWeight: 500 }}>{acct.name}</td>
-                                    <td>
-                                        <span className="api-key-cell">{acct.slug}</span>
-                                    </td>
-                                    <td>
-                                        <Badge appearance="outline" color="informative">
-                                            {REG_MODE_LABELS[acct.registration_mode || "pairing"] || acct.registration_mode || "配对码审批"}
-                                        </Badge>
-                                    </td>
-                                    <td>
-                                        <div className="flex items-center gap-4">
-                                            <span className="api-key-cell">
-                                                {acct.api_key.substring(0, 8)}...
-                                            </span>
-                                            <Button
-                                                appearance="subtle"
-                                                size="small"
-                                                icon={<Copy24Regular />}
-                                                title="复制完整 API Key"
-                                                onClick={() => copyApiKey(acct.api_key)}
-                                            />
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <Badge color={acct.is_active ? "success" : "severe"}>
-                                            {acct.is_active ? "活跃" : "已停用"}
-                                        </Badge>
-                                    </td>
-                                    <td>{new Date(acct.created_at).toLocaleDateString("zh-CN")}</td>
-                                    <td>
-                                        <div className="flex gap-4">
-                                            <Button
-                                                appearance="primary"
-                                                size="small"
-                                                icon={<Settings24Regular />}
-                                                title="进入该租户的集控管理后台（编辑课表、时间表、科目、策略、客户端等）"
-                                                onClick={() => {
-                                                    switchAccount(acct.id);
-                                                    router.push("/dashboard");
-                                                }}
-                                            >
-                                                进入集控编辑
-                                            </Button>
-                                            <Button
-                                                appearance="subtle"
-                                                size="small"
-                                                icon={<DataUsage24Regular />}
-                                                title="配额与功能开关"
-                                                onClick={() => openQuotaModal(acct)}
-                                            >
-                                                配额
-                                            </Button>
-                                            <Button
-                                                appearance="subtle"
-                                                size="small"
-                                                icon={<Edit24Regular />}
-                                                title="编辑账户"
-                                                onClick={() => {
-                                                    setEditAccount(acct);
-                                                    setEditForm({
-                                                        new_id: acct.id,
-                                                        name: acct.name,
-                                                        slug: acct.slug,
-                                                        is_active: acct.is_active,
-                                                        registration_mode: (acct.registration_mode || "pairing") as RegistrationMode,
-                                                    });
-                                                }}
-                                            />
-                                            <Button
-                                                appearance="subtle"
-                                                size="small"
-                                                icon={<Delete24Regular />}
-                                                title="删除账户"
-                                                onClick={() => setDeleteTarget(acct)}
-                                            />
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {filtered.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+                                            {searchQuery ? "未找到匹配的账户" : "暂无账户数据"}
+                                        </td>
+                                    </tr>
+                                ) : filtered.map(acct => (
+                                    <tr key={acct.id}>
+                                        <td style={{ fontWeight: 500 }}>{acct.name}</td>
+                                        <td>
+                                            <span className="api-key-cell">{acct.slug}</span>
+                                        </td>
+                                        <td>
+                                            <Badge appearance="outline" color="informative">
+                                                {REG_MODE_LABELS[acct.registration_mode || "pairing"] || acct.registration_mode || "配对码审批"}
+                                            </Badge>
+                                        </td>
+                                        <td>
+                                            <div className="flex items-center gap-4">
+                                                <span className="api-key-cell">
+                                                    {acct.api_key.substring(0, 8)}...
+                                                </span>
+                                                <Button
+                                                    appearance="subtle"
+                                                    size="small"
+                                                    icon={<Copy24Regular />}
+                                                    title="复制完整 API Key"
+                                                    onClick={() => copyApiKey(acct.api_key)}
+                                                />
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <Badge color={acct.is_active ? "success" : "severe"}>
+                                                {acct.is_active ? "活跃" : "已停用"}
+                                            </Badge>
+                                        </td>
+                                        <td>{new Date(acct.created_at).toLocaleDateString("zh-CN")}</td>
+                                        <td>
+                                            <div className="flex gap-4">
+                                                <Button
+                                                    appearance="primary"
+                                                    size="small"
+                                                    icon={<Settings24Regular />}
+                                                    title="进入该租户的集控管理后台（编辑课表、时间表、科目、策略、客户端等）"
+                                                    onClick={() => {
+                                                        switchAccount(acct.id);
+                                                        router.push("/dashboard");
+                                                    }}
+                                                >
+                                                    进入集控编辑
+                                                </Button>
+                                                <Button
+                                                    appearance="subtle"
+                                                    size="small"
+                                                    icon={<DataUsage24Regular />}
+                                                    title="配额与功能开关"
+                                                    onClick={() => openQuotaModal(acct)}
+                                                >
+                                                    配额
+                                                </Button>
+                                                <Button
+                                                    appearance="subtle"
+                                                    size="small"
+                                                    icon={<Edit24Regular />}
+                                                    title="编辑账户"
+                                                    onClick={() => {
+                                                        setEditAccount(acct);
+                                                        setEditForm({
+                                                            name: acct.name,
+                                                            slug: acct.slug,
+                                                            is_active: acct.is_active,
+                                                            registration_mode: (acct.registration_mode || "pairing") as RegistrationMode,
+                                                        });
+                                                    }}
+                                                />
+                                                <Button
+                                                    appearance="subtle"
+                                                    size="small"
+                                                    icon={<Delete24Regular />}
+                                                    title="删除账户"
+                                                    onClick={() => setDeleteTarget(acct)}
+                                                />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 
@@ -389,14 +390,14 @@ export default function AdminAccountsPage() {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <Label>子域名标识 Slug (可选，留空自动生成)</Label>
+                                    <Label>子域名标识 Slug (可选，留空自动随机生成)</Label>
                                     <Input
-                                        placeholder="例如：no1-school (仅限小写字母、数字和连字符)"
+                                        placeholder="留空随机生成如 account_1234abcd (小写字母、数字、连字符或下划线)"
                                         value={createForm.slug || ""}
                                         onChange={(_, d) => setCreateForm({ ...createForm, slug: d.value })}
                                         style={{ width: "100%" }}
                                     />
-                                    <div className="form-hint">用于终端接入的子域名标识与多租户隔离标识</div>
+                                    <div className="form-hint">用于终端接入的子域名标识与多租户隔离标识（默认格式如 account_1234abcd）</div>
                                 </div>
                             </DialogContent>
                             <DialogActions>
@@ -424,13 +425,14 @@ export default function AdminAccountsPage() {
                             <DialogTitle>编辑租户账户: {editAccount.name}</DialogTitle>
                             <DialogContent>
                                 <div className="form-group">
-                                    <Label>账户 ID (唯一标识)</Label>
+                                    <Label>账户 ID (UUID)</Label>
                                     <Input
-                                        value={editForm.new_id ?? editAccount.id}
-                                        onChange={(_, d) => setEditForm({ ...editForm, new_id: d.value })}
-                                        style={{ width: "100%" }}
+                                        value={editAccount.id}
+                                        readOnly
+                                        disabled
+                                        style={{ width: "100%", fontFamily: "var(--font-mono)" }}
                                     />
-                                    <div className="form-hint">3-64 位字母、数字、连字符或下划线，修改后将自动同步关联数据</div>
+                                    <div className="form-hint">账户唯一标识 (UUID) 在生成时已锁定，不可修改</div>
                                 </div>
                                 <div className="form-group">
                                     <Label>租户名称</Label>

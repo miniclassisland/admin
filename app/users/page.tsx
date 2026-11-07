@@ -2,7 +2,7 @@
 
 /**
  * MINI ClassIsland 超级管理平台 — 全局用户管理页面。
- * 支持：搜索用户、直接创建用户、编辑角色/显示名/用户名/激活状态/建号权限、重置密码、重置2FA、删除用户。
+ * 支持：搜索用户、直接创建用户、编辑角色/显示名/用户名/激活状态/建号权限、管理 QQ 绑定/换绑/解绑、重置密码、重置2FA、删除用户。
  */
 
 import React, { useEffect, useState, useCallback } from "react";
@@ -33,6 +33,7 @@ import {
     PersonAdd24Regular,
     ArrowReset24Regular,
     ShieldKeyhole24Regular,
+    LinkDismiss24Regular,
 } from "@fluentui/react-icons";
 
 export default function AdminUsersPage() {
@@ -59,6 +60,7 @@ export default function AdminUsersPage() {
     const [editUser, setEditUser] = useState<UserOut | null>(null);
     const [editForm, setEditForm] = useState<UserUpdateRequest>({});
     const [saving, setSaving] = useState(false);
+    const [unbindingQQ, setUnbindingQQ] = useState(false);
 
     // 密码重置对话框
     const [resetPwdUser, setResetPwdUser] = useState<UserOut | null>(null);
@@ -139,6 +141,25 @@ export default function AdminUsersPage() {
         }
     }
 
+    async function handleUnbindQQ(target: UserOut) {
+        setUnbindingQQ(true);
+        setError(null);
+        setSuccessMsg(null);
+        try {
+            const updated = await adminApi.unbindUserQQ(target.id);
+            if (editUser && editUser.id === target.id) {
+                setEditUser(updated);
+                setEditForm((prev) => ({ ...prev, qq_uin: "" }));
+            }
+            setSuccessMsg(`已解绑用户 ${target.username} 的 QQ 并通知机器人移出群聊`);
+            await loadUsers();
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "解绑 QQ 失败");
+        } finally {
+            setUnbindingQQ(false);
+        }
+    }
+
     async function handleResetPassword() {
         if (!resetPwdUser || newPassword.length < 12) return;
         setResettingPwd(true);
@@ -195,7 +216,7 @@ export default function AdminUsersPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">全局用户管理</h1>
-                    <p className="page-subtitle">管理 MINI ClassIsland 平台中所有注册用户、系统角色与安全状态</p>
+                    <p className="page-subtitle">管理 MINI ClassIsland 平台中所有注册用户、系统角色、QQ 绑定与安全状态</p>
                 </div>
                 <Button
                     appearance="primary"
@@ -207,13 +228,13 @@ export default function AdminUsersPage() {
                 </Button>
             </div>
 
-            <div className="flex items-center gap-8 mb-16">
+            <div className="flex items-center gap-8 mb-16" style={{ flexWrap: "wrap" }}>
                 <Input
                     placeholder="搜索用户名、显示名或邮箱..."
                     value={searchQuery}
                     onChange={(_, d) => setSearchQuery(d.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
-                    style={{ width: 320 }}
+                    style={{ width: 320, maxWidth: "100%" }}
                     contentBefore={<Search24Regular />}
                 />
                 <Button size="small" onClick={handleSearch}>搜索</Button>
@@ -247,114 +268,145 @@ export default function AdminUsersPage() {
             ) : (
                 <>
                     <div className="card">
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>用户名</th>
-                                    <th>邮箱</th>
-                                    <th>显示名</th>
-                                    <th>系统角色</th>
-                                    <th>建号权限</th>
-                                    <th>2FA</th>
-                                    <th>状态</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {users.length === 0 ? (
+                        <div className="table-container">
+                            <table className="data-table">
+                                <thead>
                                     <tr>
-                                        <td colSpan={8} style={{ textAlign: "center", color: "var(--text-secondary)" }}>
-                                            暂无用户数据
-                                        </td>
+                                        <th>用户名</th>
+                                        <th>邮箱</th>
+                                        <th>显示名</th>
+                                        <th>绑定 QQ</th>
+                                        <th>系统角色</th>
+                                        <th>建号权限</th>
+                                        <th>2FA</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
                                     </tr>
-                                ) : users.map(u => (
-                                    <tr key={u.id}>
-                                        <td style={{ fontWeight: 500 }}>{u.username}</td>
-                                        <td>{u.email}</td>
-                                        <td>{u.display_name || "-"}</td>
-                                        <td>
-                                            <Badge
-                                                appearance="filled"
-                                                color={
-                                                    u.role_code === "superadmin"
-                                                        ? "danger"
-                                                        : u.role_code === "admin"
-                                                            ? "warning"
-                                                            : u.role_code === "banned"
-                                                                ? "severe"
-                                                                : "informative"
-                                                }
-                                            >
-                                                {ROLE_LABELS[u.role_code] || u.role_code}
-                                            </Badge>
-                                        </td>
-                                        <td>
-                                            <Badge appearance="outline" color={u.can_create_account ? "success" : "subtle"}>
-                                                {u.can_create_account ? "允许创建租户" : "仅受邀"}
-                                            </Badge>
-                                        </td>
-                                        <td>
-                                            <Badge appearance="tint" color={u.totp_enabled ? "success" : "subtle"}>
-                                                {u.totp_enabled ? "已开启" : "未开启"}
-                                            </Badge>
-                                        </td>
-                                        <td>
-                                            <Badge color={u.is_active ? "success" : "severe"}>
-                                                {u.is_active ? "活跃" : "已禁用"}
-                                            </Badge>
-                                        </td>
-                                        <td>
-                                            <div className="flex gap-4">
-                                                <Button
-                                                    appearance="subtle"
-                                                    icon={<Edit24Regular />}
-                                                    size="small"
-                                                    title="编辑用户与权限"
-                                                    onClick={() => {
-                                                        setEditUser(u);
-                                                        setEditForm({
-                                                            username: u.username,
-                                                            email: u.email,
-                                                            display_name: u.display_name,
-                                                            role_code: u.role_code,
-                                                            is_active: u.is_active,
-                                                            can_create_account: Boolean(u.can_create_account),
-                                                            totp_enabled: Boolean(u.totp_enabled),
-                                                        });
-                                                    }}
-                                                />
-                                                <Button
-                                                    appearance="subtle"
-                                                    icon={<ArrowReset24Regular />}
-                                                    size="small"
-                                                    title="重置登录密码"
-                                                    onClick={() => {
-                                                        setResetPwdUser(u);
-                                                        setNewPassword("");
-                                                    }}
-                                                />
-                                                {u.totp_enabled && (
+                                </thead>
+                                <tbody>
+                                    {users.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={9} style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+                                                暂无用户数据
+                                            </td>
+                                        </tr>
+                                    ) : users.map(u => (
+                                        <tr key={u.id}>
+                                            <td style={{ fontWeight: 500 }}>{u.username}</td>
+                                            <td>{u.email}</td>
+                                            <td>{u.display_name || "-"}</td>
+                                            <td>
+                                                {u.bound_qq ? (
+                                                    <div className="flex items-center gap-4" style={{ flexWrap: "wrap" }}>
+                                                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>
+                                                            {u.bound_qq}
+                                                        </span>
+                                                        <Badge
+                                                            appearance="tint"
+                                                            color={u.qq_joined_group === false ? "warning" : "success"}
+                                                        >
+                                                            {u.qq_joined_group === false ? "待入群" : "已入群"}
+                                                        </Badge>
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ color: "var(--text-tertiary)", fontSize: 12 }}>未绑定</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <Badge
+                                                    appearance="filled"
+                                                    color={
+                                                        u.role_code === "superadmin"
+                                                            ? "danger"
+                                                            : u.role_code === "admin"
+                                                                ? "warning"
+                                                                : u.role_code === "banned"
+                                                                    ? "severe"
+                                                                    : "informative"
+                                                    }
+                                                >
+                                                    {ROLE_LABELS[u.role_code] || u.role_code}
+                                                </Badge>
+                                            </td>
+                                            <td>
+                                                <Badge appearance="outline" color={u.can_create_account ? "success" : "subtle"}>
+                                                    {u.can_create_account ? "允许创建租户" : "仅受邀"}
+                                                </Badge>
+                                            </td>
+                                            <td>
+                                                <Badge appearance="tint" color={u.totp_enabled ? "success" : "subtle"}>
+                                                    {u.totp_enabled ? "已开启" : "未开启"}
+                                                </Badge>
+                                            </td>
+                                            <td>
+                                                <Badge color={u.is_active ? "success" : "severe"}>
+                                                    {u.is_active ? "活跃" : "已禁用"}
+                                                </Badge>
+                                            </td>
+                                            <td>
+                                                <div className="flex gap-4">
                                                     <Button
                                                         appearance="subtle"
-                                                        icon={<ShieldKeyhole24Regular />}
+                                                        icon={<Edit24Regular />}
                                                         size="small"
-                                                        title="重置/解绑两步验证 (2FA)"
-                                                        onClick={() => handleReset2FA(u)}
+                                                        title="编辑用户与 QQ 绑定"
+                                                        onClick={() => {
+                                                            setEditUser(u);
+                                                            setEditForm({
+                                                                username: u.username,
+                                                                email: u.email,
+                                                                display_name: u.display_name,
+                                                                role_code: u.role_code,
+                                                                is_active: u.is_active,
+                                                                can_create_account: Boolean(u.can_create_account),
+                                                                totp_enabled: Boolean(u.totp_enabled),
+                                                                qq_uin: u.bound_qq || "",
+                                                            });
+                                                        }}
                                                     />
-                                                )}
-                                                <Button
-                                                    appearance="subtle"
-                                                    icon={<Delete24Regular />}
-                                                    size="small"
-                                                    title="删除用户"
-                                                    onClick={() => setDeleteUser(u)}
-                                                />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                                    {u.bound_qq && (
+                                                        <Button
+                                                            appearance="subtle"
+                                                            icon={<LinkDismiss24Regular />}
+                                                            size="small"
+                                                            title="解绑 QQ 并移出群聊"
+                                                            disabled={unbindingQQ}
+                                                            onClick={() => void handleUnbindQQ(u)}
+                                                        />
+                                                    )}
+                                                    <Button
+                                                        appearance="subtle"
+                                                        icon={<ArrowReset24Regular />}
+                                                        size="small"
+                                                        title="重置登录密码"
+                                                        onClick={() => {
+                                                            setResetPwdUser(u);
+                                                            setNewPassword("");
+                                                        }}
+                                                    />
+                                                    {u.totp_enabled && (
+                                                        <Button
+                                                            appearance="subtle"
+                                                            icon={<ShieldKeyhole24Regular />}
+                                                            size="small"
+                                                            title="重置/解绑两步验证 (2FA)"
+                                                            onClick={() => handleReset2FA(u)}
+                                                        />
+                                                    )}
+                                                    <Button
+                                                        appearance="subtle"
+                                                        icon={<Delete24Regular />}
+                                                        size="small"
+                                                        title="删除用户"
+                                                        onClick={() => setDeleteUser(u)}
+                                                    />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     {!searchQuery && (
@@ -410,9 +462,9 @@ export default function AdminUsersPage() {
                                 </div>
                                 <div className="grid-2">
                                     <div className="form-group">
-                                        <Label>用户名 (可选，留空自动取邮箱前缀)</Label>
+                                        <Label>用户名 (可选，留空随机生成)</Label>
                                         <Input
-                                            placeholder="username"
+                                            placeholder="留空随机生成如 user_1234abcd"
                                             value={createForm.username || ""}
                                             onChange={(_, d) => setCreateForm({ ...createForm, username: d.value })}
                                             style={{ width: "100%" }}
@@ -475,6 +527,16 @@ export default function AdminUsersPage() {
                             <DialogTitle>编辑用户: {editUser.username}</DialogTitle>
                             <DialogContent>
                                 <div className="form-group">
+                                    <Label>用户 ID (UUID)</Label>
+                                    <Input
+                                        value={editUser.id}
+                                        readOnly
+                                        disabled
+                                        style={{ width: "100%", fontFamily: "var(--font-mono)" }}
+                                    />
+                                    <div className="form-hint">用户唯一标识 (UUID) 在生成时已锁定，不可修改</div>
+                                </div>
+                                <div className="form-group">
                                     <Label>用户名</Label>
                                     <Input
                                         value={editForm.username || ""}
@@ -498,6 +560,31 @@ export default function AdminUsersPage() {
                                         onChange={(_, d) => setEditForm({ ...editForm, display_name: d.value })}
                                         style={{ width: "100%" }}
                                     />
+                                </div>
+                                <div className="form-group">
+                                    <Label>绑定 QQ 号 (支持绑定 / 换绑 / 清空解绑)</Label>
+                                    <div className="flex items-center gap-8">
+                                        <Input
+                                            placeholder="输入 5-20 位 QQ 号，留空保存将解绑"
+                                            value={editForm.qq_uin ?? ""}
+                                            onChange={(_, d) => setEditForm({ ...editForm, qq_uin: d.value })}
+                                            style={{ flex: 1, fontFamily: "var(--font-mono)" }}
+                                        />
+                                        {editUser.bound_qq && (
+                                            <Button
+                                                size="small"
+                                                appearance="secondary"
+                                                icon={<LinkDismiss24Regular />}
+                                                disabled={unbindingQQ}
+                                                onClick={() => void handleUnbindQQ(editUser)}
+                                            >
+                                                立即解绑
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <div className="form-hint">
+                                        手动绑定的 QQ 申请加入群聊时输入任意验证密码即可自动通过；触发换绑或解绑时机器人将先私聊发送「您的 QQ 已与您（显示名称）解绑」并移出群聊
+                                    </div>
                                 </div>
                                 <div className="form-group">
                                     <Label>系统角色</Label>

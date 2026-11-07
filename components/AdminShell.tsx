@@ -63,6 +63,7 @@ const globalNavGroups: NavGroup[] = [
             { label: "全局用户管理", href: "/users", icon: <People24Regular /> },
             { label: "注册审核", href: "/pending", icon: <PersonClock24Regular /> },
             { label: "全局账户与配额", href: "/accounts", icon: <PersonAccounts24Regular /> },
+            { label: "全局客户端管理", href: "/global-clients", icon: <PlugConnected24Regular /> },
             { label: "工单处理", href: "/tickets", icon: <Headset24Regular /> },
             { label: "系统参数设置", href: "/settings", icon: <Settings24Regular /> },
         ],
@@ -104,7 +105,7 @@ const tenantNavGroups: NavGroup[] = [
     },
 ];
 
-const GLOBAL_PATHS = ["/", "/users", "/pending", "/accounts", "/settings", "/tickets"];
+const GLOBAL_PATHS = ["/", "/users", "/pending", "/accounts", "/global-clients", "/settings", "/tickets"];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading, logout } = useAuth();

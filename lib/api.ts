@@ -796,6 +796,12 @@ export const adminApi = {
     changePassword: (userId: string, data: PasswordChange) =>
         post<{ status: string }>(`/user/${encodeURIComponent(userId)}/password/change`, data),
 
+    bindUserQQ: (userId: string, qq_uin: string) =>
+        post<UserOut>(`/user/${encodeURIComponent(userId)}/qq/bind`, { qq_uin }),
+
+    unbindUserQQ: (userId: string) =>
+        post<UserOut>(`/user/${encodeURIComponent(userId)}/qq/unbind`),
+
     // ---- 用户审核 ----
     listPendingUsers: () =>
         get<UserOut[]>("/user/pending/list"),
@@ -827,6 +833,14 @@ export const adminApi = {
 
     setAccountQuota: (accountId: string, data: QuotaSetRequest) =>
         post<QuotaOut>(`/account/${encodeURIComponent(accountId)}/quota`, data),
+
+    listAllClients: (params?: { account_id?: string; q?: string }) => {
+        const searchParams = new URLSearchParams();
+        if (params?.account_id?.trim()) searchParams.set("account_id", params.account_id.trim());
+        if (params?.q?.trim()) searchParams.set("q", params.q.trim());
+        const qs = searchParams.toString();
+        return get<ClientDeviceOut[]>(`/client/list${qs ? `?${qs}` : ""}`);
+    },
 
     // ---- 系统设置 ----
     getSettings: () =>

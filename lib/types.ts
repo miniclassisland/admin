@@ -42,6 +42,10 @@ export interface UserOut {
     is_active: boolean;
     totp_enabled?: boolean;
     can_create_account?: boolean;
+    bound_qq_masked?: string | null;
+    bound_qq?: string | null;
+    qq_bound_manual?: boolean | null;
+    qq_joined_group?: boolean | null;
     created_at: string;
 }
 
@@ -53,6 +57,7 @@ export interface UserUpdateRequest {
     is_active?: boolean | null;
     can_create_account?: boolean | null;
     totp_enabled?: boolean | null;
+    qq_uin?: string | null;
 }
 
 export interface UserRegisterRequest {
@@ -773,12 +778,15 @@ export const BUILTIN_COMPONENTS: Array<{ id: string; name: string; desc: string 
 
 export interface ClientDeviceOut {
     uid: string;
+    account_id?: string;
+    account_name?: string;
+    account_slug?: string;
     client_id: string;
     display_name: string;
     mac: string;
     ip: string | null;
     is_disabled: boolean;
-    status: "online" | "offline";
+    status: "online" | "offline" | "disabled";
     registered_at: string | null;
     last_seen_at: string | null;
     profile_config: ClientProfileConfig;
