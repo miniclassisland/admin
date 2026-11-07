@@ -45,9 +45,9 @@ import {
 } from "@fluentui/react-icons";
 
 const REG_MODE_LABELS: Record<string, string> = {
-    open: "开放注册 (Open)",
-    pairing: "配对码审批 (Pairing)",
-    pre_reg: "预注册白名单 (Pre-Reg)",
+    open: "开放注册",
+    pairing: "配对码审批",
+    pre_reg: "预注册白名单",
 };
 
 export default function AdminAccountsPage() {
@@ -425,14 +425,13 @@ export default function AdminAccountsPage() {
                             <DialogTitle>编辑租户账户: {editAccount.name}</DialogTitle>
                             <DialogContent>
                                 <div className="form-group">
-                                    <Label>账户 ID (UUID)</Label>
+                                    <Label>账户 ID</Label>
                                     <Input
                                         value={editAccount.id}
                                         readOnly
                                         disabled
                                         style={{ width: "100%", fontFamily: "var(--font-mono)" }}
                                     />
-                                    <div className="form-hint">账户唯一标识 (UUID) 在生成时已锁定，不可修改</div>
                                 </div>
                                 <div className="form-group">
                                     <Label>租户名称</Label>
@@ -456,9 +455,9 @@ export default function AdminAccountsPage() {
                                         value={editForm.registration_mode || "pairing"}
                                         onChange={(_, d) => setEditForm({ ...editForm, registration_mode: d.value as RegistrationMode })}
                                     >
-                                        <option value="open">开放注册 (Open) — 终端连接即自动接入</option>
-                                        <option value="pairing">配对码审批 (Pairing) — 终端生成 6 位配对码由管理员确认</option>
-                                        <option value="pre_reg">预注册白名单 (Pre-Reg) — 仅允许后台登记的标识或 MAC 接入</option>
+                                        <option value="open">开放注册 — 终端连接即自动接入</option>
+                                        <option value="pairing">配对码审批 — 终端生成 6 位配对码由管理员确认</option>
+                                        <option value="pre_reg">预注册白名单 — 仅允许后台登记的标识或 MAC 接入</option>
                                     </Select>
                                 </div>
                                 <div className="form-group flex items-center justify-between">

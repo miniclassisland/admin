@@ -27,11 +27,11 @@ function StatCard({
 }) {
     return (
         <div className="stat-card">
-            <div className="flex items-center gap-8" style={{ color: color || "var(--accent-color)" }}>
-                {icon}
-                <span className="stat-value">{value}</span>
+            <div className="stat-card-header">
+                <span className="stat-card-label">{label}</span>
+                <span className="stat-card-icon" style={{ color: color || "var(--accent-color)" }}>{icon}</span>
             </div>
-            <div className="stat-label">{label}</div>
+            <div className="stat-card-value">{value}</div>
         </div>
     );
 }
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                     </p>
                 </div>
                 <DownloadPresetPopoverButton
-                    buttonText="下载通用配置 (仅接口地址)"
+                    buttonText="下载通用配置"
                     appearance="primary"
                     defaultFileName={`ManagementPreset-${slugName}-generic.json`}
                     onFetchData={() => accounts.downloadPreset(accountId)}

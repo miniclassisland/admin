@@ -38,13 +38,13 @@ function AdminStatCard({
 }) {
     return (
         <div className="stat-card">
-            <div className="flex items-center gap-8" style={{ color: color || "var(--accent-color)", marginBottom: 4 }}>
-                {icon}
-                <span className="stat-value" style={{ color: "var(--text-primary)" }}>{value}</span>
+            <div className="stat-card-header">
+                <span className="stat-card-label">{label}</span>
+                <span className="stat-card-icon" style={{ color: color || "var(--accent-color)" }}>{icon}</span>
             </div>
-            <div className="stat-label">{label}</div>
+            <div className="stat-card-value">{value}</div>
             {sublabel && (
-                <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                <div className="stat-card-footer">
                     {sublabel}
                 </div>
             )}
@@ -66,7 +66,6 @@ export default function AdminDashboard() {
             const data = await adminApi.getStats();
             setStats(data);
         } catch {
-            // fallback to list counts if needed
             try {
                 const [accts, users, pending] = await Promise.allSettled([
                     adminApi.listAccounts(),
@@ -149,7 +148,7 @@ export default function AdminDashboard() {
                     icon={<PlugConnected24Regular />}
                     label="当前在线终端"
                     value={stats?.online_clients ?? "-"}
-                    sublabel="gRPC 实时长连接会话"
+                    sublabel="实时长连接会话"
                     color="#107c10"
                 />
                 <AdminStatCard
@@ -163,10 +162,12 @@ export default function AdminDashboard() {
 
             <div className="grid-2">
                 <div className="card">
-                    <div className="card-title">用户与权限治理</div>
-                    <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
-                        管理全平台所有用户账号、系统角色（普通用户、管理员、超级管理员）、建号权限、两步验证重置以及新用户注册审核。
-                    </p>
+                    <div>
+                        <div className="card-title">用户与权限治理</div>
+                        <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
+                            管理全平台所有用户账号、系统角色、建号权限、两步验证重置以及新用户注册审核。
+                        </p>
+                    </div>
                     <div className="flex gap-8" style={{ flexWrap: "wrap" }}>
                         <Link href="/users" style={{ textDecoration: "none" }}>
                             <Button appearance="primary" size="small" icon={<People24Regular />}>
@@ -187,11 +188,13 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="card">
-                    <div className="card-title">多租户账户与配额</div>
-                    <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
-                        查看并管理所有租户账户的启停状态、子域名 Slug、设备接入模式（开放注册 / 配对码 / 预注册白名单）与终端容量配额。
-                    </p>
-                    <div className="flex gap-8">
+                    <div>
+                        <div className="card-title">多租户账户与配额</div>
+                        <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 16 }}>
+                            查看并管理所有租户账户的启停状态、子域名标识、设备接入模式与终端容量配额。
+                        </p>
+                    </div>
+                    <div className="flex gap-8" style={{ flexWrap: "wrap" }}>
                         <Link href="/accounts" style={{ textDecoration: "none" }}>
                             <Button appearance="primary" size="small" icon={<PersonAccounts24Regular />}>
                                 全局账户与配额

@@ -182,7 +182,7 @@ export default function AdminUsersPage() {
         setSuccessMsg(null);
         try {
             await adminApi.disable2FA(user.id);
-            setSuccessMsg(`已为用户 ${user.username} 禁用并重置两步验证 (2FA)`);
+            setSuccessMsg(`已为用户 ${user.username} 禁用并重置两步验证`);
             await loadUsers();
         } catch (e) {
             setError(e instanceof Error ? e.message : "重置 2FA 失败");
@@ -389,7 +389,7 @@ export default function AdminUsersPage() {
                                                             appearance="subtle"
                                                             icon={<ShieldKeyhole24Regular />}
                                                             size="small"
-                                                            title="重置/解绑两步验证 (2FA)"
+                                                            title="重置/解绑两步验证"
                                                             onClick={() => handleReset2FA(u)}
                                                         />
                                                     )}
@@ -487,7 +487,7 @@ export default function AdminUsersPage() {
                                         onChange={(_, d) => setCreateForm({ ...createForm, role_code: d.value })}
                                     >
                                         {Object.entries(ROLE_LABELS).map(([code, label]) => (
-                                            <option key={code} value={code}>{label} ({code})</option>
+                                            <option key={code} value={code}>{label}</option>
                                         ))}
                                     </Select>
                                 </div>
@@ -527,14 +527,13 @@ export default function AdminUsersPage() {
                             <DialogTitle>编辑用户: {editUser.username}</DialogTitle>
                             <DialogContent>
                                 <div className="form-group">
-                                    <Label>用户 ID (UUID)</Label>
+                                    <Label>用户 ID</Label>
                                     <Input
                                         value={editUser.id}
                                         readOnly
                                         disabled
                                         style={{ width: "100%", fontFamily: "var(--font-mono)" }}
                                     />
-                                    <div className="form-hint">用户唯一标识 (UUID) 在生成时已锁定，不可修改</div>
                                 </div>
                                 <div className="form-group">
                                     <Label>用户名</Label>
@@ -593,7 +592,7 @@ export default function AdminUsersPage() {
                                         onChange={(_, d) => setEditForm({ ...editForm, role_code: d.value })}
                                     >
                                         {Object.entries(ROLE_LABELS).map(([code, label]) => (
-                                            <option key={code} value={code}>{label} ({code})</option>
+                                            <option key={code} value={code}>{label}</option>
                                         ))}
                                     </Select>
                                 </div>
@@ -619,7 +618,7 @@ export default function AdminUsersPage() {
                                 </div>
                                 <div className="form-group flex items-center justify-between">
                                     <div>
-                                        <Label style={{ marginBottom: 0 }}>两步验证 (2FA) 状态</Label>
+                                        <Label style={{ marginBottom: 0 }}>两步验证 状态</Label>
                                         <div className="form-hint">关闭将清除该用户的 TOTP 绑定与恢复码；开启将为其启用 2FA</div>
                                     </div>
                                     <div className="flex items-center gap-8">

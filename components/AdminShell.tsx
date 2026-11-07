@@ -1,8 +1,9 @@
 "use client";
 
 /**
- * Admin 壳层组件 — 超管全局控制台 + 嵌套主站全量租户集控功能。
- * 支持超管随时在顶栏/侧边栏切换全平台任意租户账户，无需加入 AccountMember 即可直接编辑其 7 大集控资源、客户端、配对码、预注册、配额等。
+ * Admin 壳层组件 — 超管全局控制台 + 独立租户集控模块。
+ * 默认状态下展示无租户属性的「全局平台治理」视图；
+ * 进入租户集控模块后，侧栏展示租户导航，右上角顶栏提供租户接管选择器。
  */
 
 import React from "react";
@@ -23,6 +24,8 @@ import {
     PersonClock24Regular,
     Settings24Regular,
     ArrowLeft24Regular,
+    ArrowLeft16Regular,
+    ArrowRight16Regular,
     SignOut24Regular,
     ShieldKeyhole24Regular,
     Home24Regular,
@@ -37,7 +40,6 @@ import {
     Link24Regular,
     Laptop24Regular,
     PeopleAdd24Regular,
-    DataBarVertical24Regular,
     BuildingMultiple24Regular,
     Navigation24Regular,
     Dismiss24Regular,
@@ -62,7 +64,7 @@ const globalNavGroups: NavGroup[] = [
             { label: "全局仪表盘", href: "/", icon: <Board24Regular /> },
             { label: "全局用户管理", href: "/users", icon: <People24Regular /> },
             { label: "注册审核", href: "/pending", icon: <PersonClock24Regular /> },
-            { label: "全局账户与配额", href: "/accounts", icon: <PersonAccounts24Regular /> },
+            { label: "租户账户与配额", href: "/accounts", icon: <BuildingMultiple24Regular /> },
             { label: "全局客户端管理", href: "/global-clients", icon: <PlugConnected24Regular /> },
             { label: "工单处理", href: "/tickets", icon: <Headset24Regular /> },
             { label: "系统参数设置", href: "/settings", icon: <Settings24Regular /> },
@@ -72,7 +74,7 @@ const globalNavGroups: NavGroup[] = [
 
 const tenantNavGroups: NavGroup[] = [
     {
-        title: "租户集控 · 概览与档案",
+        title: "概览与档案",
         items: [
             { label: "租户仪表盘", href: "/dashboard", icon: <Home24Regular /> },
             { label: "科目管理", href: "/profiles/subjects", icon: <Book24Regular /> },
@@ -85,7 +87,7 @@ const tenantNavGroups: NavGroup[] = [
         ],
     },
     {
-        title: "租户集控 · 终端与接入",
+        title: "终端与接入",
         items: [
             { label: "客户端管理", href: "/clients", icon: <PlugConnected24Regular /> },
             { label: "通知推送", href: "/notifications", icon: <Send24Regular /> },
@@ -95,12 +97,11 @@ const tenantNavGroups: NavGroup[] = [
         ],
     },
     {
-        title: "租户集控 · 账户与权限",
+        title: "账户与权限",
         items: [
             { label: "租户概览与配额", href: "/tenant-account", icon: <PersonAccounts24Regular /> },
             { label: "访问控制", href: "/access", icon: <PeopleAdd24Regular /> },
             { label: "邀请管理", href: "/invitations", icon: <PeopleAdd24Regular /> },
-            { label: "超管个人安全", href: "/security", icon: <DataBarVertical24Regular /> },
         ],
     },
 ];
@@ -187,7 +188,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         alt="MINI ClassIsland"
                         style={{ width: 24, height: 24, borderRadius: 6, flexShrink: 0 }}
                     />
-                    <span style={{ flex: 1 }}>MINI ClassIsland</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            MINI ClassIsland
+                        </div>
+                        <div style={{ fontSize: 11, color: "var(--text-tertiary)", fontWeight: 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {isGlobalPage ? "超管全局治理" : (currentAccount?.name || "租户集控管理")}
+                        </div>
+                    </div>
                     <button
                         type="button"
                         className="mobile-drawer-close"
@@ -198,64 +206,49 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                     </button>
                 </div>
 
-                {/* 超管全局租户快速切换器 */}
-                <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--border-color)", background: "var(--bg-accent-subtle)" }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "var(--accent-color)", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
-                        <BuildingMultiple24Regular style={{ width: 14, height: 14 }} />
-                        <span>当前接管租户 ({accounts.length})</span>
+                {!isGlobalPage && (
+                    <div className="sidebar-tenant-box">
+                        <Link href="/accounts" className="sidebar-back-link">
+                            <ArrowLeft16Regular />
+                            <span>返回租户账户与配额</span>
+                        </Link>
                     </div>
-                    <Select
-                        size="small"
-                        value={accountId}
-                        onChange={(_, d) => switchAccount(d.value)}
-                        style={{ width: "100%" }}
-                    >
-                        {accounts.length === 0 ? (
-                            <option value="">暂无租户账户</option>
-                        ) : (
-                            accounts.map((a) => (
-                                <option key={a.id} value={a.id}>
-                                    {a.name} ({a.slug}){!a.is_active ? " [已停用]" : ""}
-                                </option>
-                            ))
-                        )}
-                    </Select>
-                </div>
+                )}
 
                 <nav className="sidebar-nav">
-                    {globalNavGroups.map((group) => (
-                        <React.Fragment key={group.title}>
-                            <div className="sidebar-section-label">{group.title}</div>
-                            {group.items.map((item) => (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={`sidebar-item ${isActive(item.href) ? "active" : ""}`}
-                                >
-                                    {item.icon}
-                                    <span>{item.label}</span>
-                                </Link>
-                            ))}
-                        </React.Fragment>
-                    ))}
-
-                    {tenantNavGroups.map((group) => (
-                        <React.Fragment key={group.title}>
-                            <div className="sidebar-section-label" style={{ color: "var(--accent-color)" }}>
-                                {group.title}
+                    {isGlobalPage ? (
+                        globalNavGroups.map((group) => (
+                            <div key={group.title} className="sidebar-section">
+                                <div className="sidebar-section-label">{group.title}</div>
+                                {group.items.map((item) => (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`sidebar-item ${isActive(item.href) ? "active" : ""}`}
+                                    >
+                                        {item.icon}
+                                        <span>{item.label}</span>
+                                    </Link>
+                                ))}
                             </div>
-                            {group.items.map((item) => (
-                                <Link
-                                    key={item.href}
-                                    href={item.href}
-                                    className={`sidebar-item ${isActive(item.href) ? "active" : ""}`}
-                                >
-                                    {item.icon}
-                                    <span>{item.label}</span>
-                                </Link>
-                            ))}
-                        </React.Fragment>
-                    ))}
+                        ))
+                    ) : (
+                        tenantNavGroups.map((group) => (
+                            <div key={group.title} className="sidebar-section">
+                                <div className="sidebar-section-label">{group.title}</div>
+                                {group.items.map((item) => (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`sidebar-item ${isActive(item.href) ? "active" : ""}`}
+                                    >
+                                        {item.icon}
+                                        <span>{item.label}</span>
+                                    </Link>
+                                ))}
+                            </div>
+                        ))
+                    )}
                 </nav>
 
                 <div className="sidebar-footer">
@@ -282,21 +275,31 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                         >
                             <Navigation24Regular />
                         </button>
-                        <span className="topbar-account" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <span className="topbar-account" style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
                             <ShieldKeyhole24Regular style={{ fontSize: 16 }} />
-                            超管平台
+                            <span>{isGlobalPage ? "超管平台" : "超管平台 · 租户集控"}</span>
                         </span>
-                        {currentAccount && (
-                            <>
-                                <span className="topbar-sep topbar-tenant-sep">/</span>
-                                <span className="topbar-tenant-info" style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                                    当前接管租户：<strong style={{ color: "var(--text-primary)" }}>{currentAccount.name}</strong>
-                                    <span className="api-key-cell" style={{ marginLeft: 6 }}>{currentAccount.slug}</span>
-                                </span>
-                            </>
-                        )}
                     </div>
                     <div className="topbar-right">
+                        {!isGlobalPage && (
+                            <div className="flex items-center gap-6" style={{ minWidth: 0 }}>
+                                <Select
+                                    size="small"
+                                    value={accountId || ""}
+                                    onChange={(_, d) => {
+                                        if (!d.value) return;
+                                        switchAccount(d.value);
+                                    }}
+                                    style={{ width: 200, maxWidth: "28vw" }}
+                                >
+                                    {accounts.map((a) => (
+                                        <option key={a.id} value={a.id}>
+                                            {a.name}{!a.is_active ? " · 已停用" : ""}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
+                        )}
                         <ThemeModeToggle />
                         <Button
                             appearance="subtle"
@@ -318,7 +321,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 </header>
 
                 <main className="main-content" key={isGlobalPage ? "global" : accountId}>
-                    {/* 当处于嵌套的租户集控页面时，顶部展示超管跨租户接管横幅 */}
                     {!isGlobalPage && currentAccount && (
                         <div
                             className="card mb-16"
@@ -333,10 +335,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                 gap: 12,
                             }}
                         >
-                            <div className="flex items-center gap-12" style={{ flexWrap: "wrap" }}>
+                            <div className="flex items-center gap-12" style={{ flexWrap: "wrap", minWidth: 0 }}>
                                 <Badge appearance="filled" color="brand">超管直管模式</Badge>
-                                <span style={{ fontSize: 13.5 }}>
-                                    正在管理租户：<strong>{currentAccount.name}</strong> (<code>{currentAccount.slug}</code>)
+                                <span style={{ fontSize: 13.5, fontWeight: 600 }}>
+                                    {currentAccount.name}
                                 </span>
                                 <Badge appearance="outline" color={currentAccount.is_active ? "success" : "severe"}>
                                     {currentAccount.is_active ? "账户活跃" : "账户已停用"}
@@ -345,19 +347,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                     {REGISTRATION_MODE_LABELS[currentAccount.registration_mode || "pairing"] || "配对码审批接入"}
                                 </Badge>
                             </div>
-                            <div className="flex items-center gap-8">
-                                <Select
-                                    size="small"
-                                    value={accountId}
-                                    onChange={(_, d) => switchAccount(d.value)}
-                                    style={{ minWidth: 200 }}
-                                >
-                                    {accounts.map((a) => (
-                                        <option key={a.id} value={a.id}>
-                                            切换租户: {a.name} ({a.slug})
-                                        </option>
-                                    ))}
-                                </Select>
+                            <div className="flex items-center gap-8" style={{ flexWrap: "wrap" }}>
                                 <Button
                                     size="small"
                                     appearance="secondary"
@@ -368,9 +358,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                 <Button
                                     size="small"
                                     appearance="subtle"
-                                    onClick={() => router.push("/accounts")}
+                                    onClick={() => router.push("/")}
                                 >
-                                    返回全局账户表
+                                    返回全局治理
                                 </Button>
                             </div>
                         </div>

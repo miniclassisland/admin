@@ -141,8 +141,8 @@ export default function SettingsPage() {
                                         value={settings[key] || "normal"}
                                         onChange={(_, d) => updateSetting(key, d.value)}
                                     >
-                                        <option value="normal">普通用户 (normal)</option>
-                                        <option value="pending">待审核 (pending)</option>
+                                        <option value="normal">普通用户</option>
+                                        <option value="pending">待审核</option>
                                     </Select>
                                 ) : meta.type === "textarea" ? (
                                     <Textarea

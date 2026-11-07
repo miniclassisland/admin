@@ -179,7 +179,7 @@ export default function GlobalClientsPage() {
                             <option value="all">全部租户账户</option>
                             {accounts.map((a) => (
                                 <option key={a.id} value={a.id}>
-                                    {a.name} ({a.slug})
+                                    {a.name}
                                 </option>
                             ))}
                         </Select>
