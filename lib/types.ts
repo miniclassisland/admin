@@ -118,6 +118,38 @@ export interface TotpRecoverRequest {
     recovery_code: string;
 }
 
+export interface CertificateIssueRequest {
+    password: string;
+    totp_code?: string;
+    recovery_code?: string;
+    device_name?: string;
+}
+
+export interface CertificateIssueResponse {
+    code: string;
+    deeplink: string;
+    expires_in: number;
+    cert_id: string;
+    family_id: string;
+    generation: number;
+    max_generation: number;
+    issued_at: number;
+    expires_at: number;
+}
+
+export interface LoginCertificateItem {
+    cert_id: string;
+    family_id: string;
+    generation: number;
+    max_generation: number;
+    issued_at: number;
+    expires_at: number;
+    last_used_at: number;
+    redeemed: boolean;
+    device_name: string;
+    can_rotate: boolean;
+}
+
 // ============================================================
 // 账户与配额
 // ============================================================

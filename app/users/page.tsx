@@ -582,7 +582,7 @@ export default function AdminUsersPage() {
                                         )}
                                     </div>
                                     <div className="form-hint">
-                                        手动绑定的 QQ 申请加入群聊时输入任意验证密码即可自动通过；触发换绑或解绑时机器人将先私聊发送「您的 QQ 已与您（显示名称）解绑」并移出群聊
+                                        手动绑定的 QQ 申请加入群聊时输入任意验证密码即可自动通过（若该 QQ 已在群内则直接推送绑定通知）；触发换绑或解绑时机器人将先私聊发送「管理员已将您的 QQ {"{QQ号}"} 与 {"{显示名称} ({用户名})"} 解绑」并移出群聊
                                     </div>
                                 </div>
                                 <div className="form-group">
