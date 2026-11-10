@@ -14,9 +14,8 @@ import {
     Input,
     Switch,
     Textarea,
-    MessageBar,
-    MessageBarBody,
 } from "@fluentui/react-components";
+import { MessageBar, MessageBarBody } from "@/components/ToastMessageBar";
 import { Select } from "@/components/CustomSelect";
 import { Save24Regular } from "@fluentui/react-icons";
 

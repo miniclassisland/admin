@@ -1,6 +1,6 @@
 # MINI ClassIsland Admin 贡献指南 (`CONTRIBUTING.md`)
 
-欢迎为 **MINI ClassIsland Admin (`miniclassisland-admin`)** 贡献代码！本控制台直接面向平台最高权限超级管理员，请严格遵守以下安全边界与工程规范。
+欢迎为 **MINI ClassIsland Admin (`miniclassisland/admin`)** 贡献代码！本控制台直接面向平台最高权限超级管理员，请严格遵守以下安全边界与工程规范。
 
 ---
 

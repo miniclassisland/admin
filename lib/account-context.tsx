@@ -39,6 +39,13 @@ export function AccountProvider({
 }) {
     const [accountList, setAccountList] = useState<AccountOut[]>([]);
     const [currentAccount, setCurrentAccount] = useState<AccountOut | null>(null);
+    const [selectedAccountId, setSelectedAccountId] = useState<string>(() => {
+        if (typeof window !== "undefined") {
+            const urlId = new URLSearchParams(window.location.search).get("account_id");
+            return urlId || localStorage.getItem(STORAGE_KEY) || "";
+        }
+        return "";
+    });
     const [loading, setLoading] = useState(false);
 
     const refreshAccounts = useCallback(async () => {
@@ -58,16 +65,19 @@ export function AccountProvider({
             const matched = savedId ? list.find(a => a.id === savedId || a.slug === savedId) : null;
             if (matched) {
                 setCurrentAccount(matched);
+                setSelectedAccountId(matched.id);
                 if (typeof window !== "undefined") {
                     localStorage.setItem(STORAGE_KEY, matched.id);
                 }
             } else if (list.length > 0) {
                 setCurrentAccount(list[0]);
+                setSelectedAccountId(list[0].id);
                 if (typeof window !== "undefined") {
                     localStorage.setItem(STORAGE_KEY, list[0].id);
                 }
             } else {
                 setCurrentAccount(null);
+                setSelectedAccountId("");
             }
         } catch {
             /* ignore */
@@ -82,24 +92,33 @@ export function AccountProvider({
         } else {
             setAccountList([]);
             setCurrentAccount(null);
+            setSelectedAccountId("");
         }
     }, [isAuthenticated, refreshAccounts]);
 
     const switchAccount = useCallback((id: string) => {
+        if (!id) return;
+        setSelectedAccountId(id);
+        if (typeof window !== "undefined") {
+            localStorage.setItem(STORAGE_KEY, id);
+        }
         const target = accountList.find(a => a.id === id || a.slug === id);
         if (target) {
             setCurrentAccount(target);
+            setSelectedAccountId(target.id);
             if (typeof window !== "undefined") {
                 localStorage.setItem(STORAGE_KEY, target.id);
             }
         }
     }, [accountList]);
 
+    const resolvedAccount = currentAccount || (selectedAccountId ? accountList.find(a => a.id === selectedAccountId || a.slug === selectedAccountId) || null : null);
+
     return (
         <AccountContext.Provider value={{
             accounts: accountList,
-            currentAccount,
-            accountId: currentAccount?.id || "",
+            currentAccount: resolvedAccount,
+            accountId: resolvedAccount?.id || selectedAccountId || "",
             loading,
             switchAccount,
             refreshAccounts,

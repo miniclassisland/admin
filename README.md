@@ -1,4 +1,4 @@
-# MINI ClassIsland Admin (`miniclassisland-admin`)
+# MINI ClassIsland Admin (`miniclassisland/admin`)
 
 <p align="center">
   <a href="https://miniclassisland.com" target="_blank" rel="noopener noreferrer">

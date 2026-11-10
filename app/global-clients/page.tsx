@@ -1,19 +1,23 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi, clients } from "@/lib/api";
 import { useAccount } from "@/lib/account-context";
 import type { ClientDeviceOut } from "@/lib/types";
+import { matchAdvancedQuery } from "@/lib/search-engine";
 import {
     Button,
     Input,
     Spinner,
     Badge,
-    MessageBar,
-    MessageBarBody,
+    Popover,
+    PopoverTrigger,
+    PopoverSurface,
 } from "@fluentui/react-components";
+import { MessageBar, MessageBarBody } from "@/components/ToastMessageBar";
 import { Select } from "@/components/CustomSelect";
+import { ConfirmPopover } from "@/components/ConfirmPopover";
 import {
     ArrowClockwise24Regular,
     ArrowSync24Regular,
@@ -22,6 +26,10 @@ import {
     DismissCircle24Regular,
     PlugDisconnected24Regular,
     BuildingMultiple24Regular,
+    Search24Regular,
+    Filter16Regular,
+    ChevronLeft16Regular,
+    ChevronRight16Regular,
 } from "@fluentui/react-icons";
 
 export default function GlobalClientsPage() {
@@ -32,6 +40,8 @@ export default function GlobalClientsPage() {
     const [accountFilter, setAccountFilter] = useState<string>("all");
     const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline" | "disabled">("all");
     const [searchQuery, setSearchQuery] = useState("");
+    const [pageSize, setPageSize] = useState<number>(20);
+    const [currentPage, setCurrentPage] = useState<number>(1);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -57,25 +67,47 @@ export default function GlobalClientsPage() {
         loadAllClients();
     }, [loadAllClients]);
 
-    const filteredClients = clientList.filter((c) => {
-        if (statusFilter === "online" && c.status !== "online") return false;
-        if (statusFilter === "offline" && c.status !== "offline") return false;
-        if (statusFilter === "disabled" && !c.is_disabled) return false;
-        if (searchQuery.trim()) {
-            const q = searchQuery.trim().toLowerCase();
-            return (
-                c.uid.toLowerCase().includes(q) ||
-                (c.client_id || "").toLowerCase().includes(q) ||
-                (c.display_name || "").toLowerCase().includes(q) ||
-                (c.mac || "").toLowerCase().includes(q) ||
-                (c.ip || "").toLowerCase().includes(q) ||
-                (c.account_name || "").toLowerCase().includes(q) ||
-                (c.account_slug || "").toLowerCase().includes(q) ||
-                (c.account_id || "").toLowerCase().includes(q)
-            );
-        }
-        return true;
-    });
+    const filteredClients = useMemo(() => {
+        return clientList.filter((c) => {
+            if (statusFilter === "online" && c.status !== "online") return false;
+            if (statusFilter === "offline" && c.status !== "offline") return false;
+            if (statusFilter === "disabled" && !c.is_disabled) return false;
+            return matchAdvancedQuery(c, searchQuery, {
+                fields: {
+                    status: (item) => {
+                        const tags: string[] = [item.status];
+                        if (item.is_disabled) tags.push("disabled");
+                        return tags;
+                    },
+                    name: (item) => [item.display_name || "", item.client_id || ""],
+                    uid: (item) => item.uid,
+                    mac: (item) => item.mac || "",
+                    ip: (item) => item.ip || "",
+                    account: (item) => [item.account_name || "", item.account_slug || "", item.account_id || ""],
+                    tag: (item) => [
+                        item.client_id || "",
+                        item.has_custom_profile ? "专属" : "默认",
+                        item.ip || "",
+                        item.account_name || "",
+                    ],
+                },
+                freeText: (item) => [
+                    item.uid,
+                    item.client_id,
+                    item.display_name,
+                    item.mac,
+                    item.ip,
+                    item.account_name,
+                    item.account_slug,
+                    item.account_id,
+                ],
+            });
+        });
+    }, [clientList, statusFilter, searchQuery]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredClients.length / pageSize));
+    const safePage = Math.min(currentPage, totalPages);
+    const pagedClients = filteredClients.slice((safePage - 1) * pageSize, safePage * pageSize);
 
     const onlineCount = clientList.filter((c) => c.status === "online" && !c.is_disabled).length;
     const offlineCount = clientList.filter((c) => c.status === "offline" && !c.is_disabled).length;
@@ -92,9 +124,6 @@ export default function GlobalClientsPage() {
         action: "sync" | "restart" | "disconnect" | "enable" | "disable" | "delete"
     ) {
         const targetAcct = c.account_id || "default";
-        if (action === "delete" && !confirm(`确定从账户「${c.account_name || targetAcct}」移除客户端「${c.display_name || c.client_id || c.uid}」吗？`)) {
-            return;
-        }
         const key = `${action}:${targetAcct}:${c.uid}`;
         setActionLoading(key);
         setMsg(null);
@@ -136,7 +165,7 @@ export default function GlobalClientsPage() {
     }
 
     return (
-        <div>
+        <div className="fade-in">
             <div className="page-header flex justify-between items-center" style={{ flexWrap: "wrap", gap: 12 }}>
                 <div>
                     <h1 className="page-title">全局客户端管理</h1>
@@ -162,51 +191,88 @@ export default function GlobalClientsPage() {
                 </MessageBar>
             )}
 
-            <div className="card mb-16">
-                <div className="flex justify-between items-center gap-12" style={{ flexWrap: "wrap" }}>
-                    <div className="flex items-center gap-12" style={{ flexWrap: "wrap" }}>
+            <div className="clients-main-pane">
+                <div className="card" style={{ padding: "12px 16px", marginBottom: 0 }}>
+                    <div className="flex items-center gap-8" style={{ flexWrap: "wrap" }}>
                         <Input
-                            placeholder="搜索 UID / 班级标识 / 备注名 / MAC / IP / 所属账户..."
+                            placeholder="搜索客户端名称、设备标识、所属账户或高级过滤表达式"
                             value={searchQuery}
-                            onChange={(_, d) => setSearchQuery(d.value)}
-                            style={{ width: 320 }}
+                            onChange={(_, d) => {
+                                setSearchQuery(d.value);
+                                setCurrentPage(1);
+                            }}
+                            contentBefore={<Search24Regular />}
+                            style={{ flex: 1, minWidth: 240, fontFamily: "var(--font-mono)" }}
                         />
-                        <Select
-                            value={accountFilter}
-                            onChange={(_, d) => setAccountFilter(d.value)}
-                            style={{ minWidth: 220 }}
-                        >
-                            <option value="all">全部租户账户</option>
-                            {accounts.map((a) => (
-                                <option key={a.id} value={a.id}>
-                                    {a.name}
-                                </option>
-                            ))}
-                        </Select>
-                        <Select
-                            value={statusFilter}
-                            onChange={(_, d) => setStatusFilter(d.value as "all" | "online" | "offline" | "disabled")}
-                        >
-                            <option value="all">全部状态 ({clientList.length})</option>
-                            <option value="online">仅看在线 ({onlineCount})</option>
-                            <option value="offline">仅看离线 ({offlineCount})</option>
-                            <option value="disabled">已禁用 ({disabledCount})</option>
-                        </Select>
+
+                        <Popover withArrow positioning="below-end">
+                            <PopoverTrigger disableButtonEnhancement>
+                                <Button appearance="outline" icon={<Filter16Regular />}>
+                                    筛选
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverSurface style={{ padding: 12, width: 300 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600 }}>所属租户账户</div>
+                                    <Select
+                                        size="small"
+                                        value={accountFilter}
+                                        onChange={(_, d) => {
+                                            setAccountFilter(d.value);
+                                            setCurrentPage(1);
+                                        }}
+                                    >
+                                        <option value="all">全部租户账户</option>
+                                        {accounts.map((a) => (
+                                            <option key={a.id} value={a.id}>
+                                                {a.name}
+                                            </option>
+                                        ))}
+                                    </Select>
+
+                                    <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>状态快速过滤</div>
+                                    <Select
+                                        size="small"
+                                        value={statusFilter}
+                                        onChange={(_, d) => {
+                                            setStatusFilter(d.value as "all" | "online" | "offline" | "disabled");
+                                            setCurrentPage(1);
+                                        }}
+                                    >
+                                        <option value="all">全部状态 ({clientList.length})</option>
+                                        <option value="online">仅看在线 ({onlineCount})</option>
+                                        <option value="offline">仅看离线 ({offlineCount})</option>
+                                        <option value="disabled">已禁用 ({disabledCount})</option>
+                                    </Select>
+                                </div>
+                            </PopoverSurface>
+                        </Popover>
+                    </div>
+
+                    <div
+                        style={{
+                            marginTop: 8,
+                            fontSize: 12.5,
+                            color: "var(--text-secondary)",
+                            display: "flex",
+                            gap: 14,
+                        }}
+                    >
+                        <span>{clientList.length}个客户端</span>
+                        <span>{filteredClients.length}已筛选</span>
                     </div>
                 </div>
-            </div>
 
-            <div className="card">
-                {loading ? (
-                    <div className="empty-state">
-                        <Spinner label="正在加载全平台客户端设备..." />
-                    </div>
-                ) : filteredClients.length === 0 ? (
-                    <div className="empty-state">
-                        <div className="empty-state-text">暂无符合筛选条件的客户端设备</div>
-                    </div>
-                ) : (
-                    <div className="table-container">
+                <div className="card" style={{ marginBottom: 0, padding: 0, overflow: "hidden" }}>
+                    {loading ? (
+                        <div className="empty-state">
+                            <Spinner label="正在加载全平台客户端设备..." />
+                        </div>
+                    ) : pagedClients.length === 0 ? (
+                        <div className="empty-state">
+                            <div className="empty-state-text">暂无符合筛选条件的客户端设备</div>
+                        </div>
+                    ) : (
                         <table className="data-table">
                             <thead>
                                 <tr>
@@ -221,7 +287,7 @@ export default function GlobalClientsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredClients.map((c) => {
+                                {pagedClients.map((c) => {
                                     const acctId = c.account_id || "default";
                                     return (
                                         <tr key={`${acctId}:${c.uid}`}>
@@ -334,16 +400,22 @@ export default function GlobalClientsPage() {
                                                             禁用
                                                         </Button>
                                                     )}
-                                                    <Button
-                                                        size="small"
-                                                        appearance="subtle"
-                                                        icon={<Delete24Regular />}
+                                                    <ConfirmPopover
+                                                        message={`确定从账户「${c.account_name || acctId}」移除客户端「${c.display_name || c.client_id || c.uid}」吗？`}
+                                                        onConfirm={() => handleClientAction(c, "delete")}
+                                                        confirmText="移除"
                                                         disabled={actionLoading !== null}
-                                                        onClick={() => handleClientAction(c, "delete")}
-                                                        style={{ color: "var(--danger-color)" }}
                                                     >
-                                                        移除
-                                                    </Button>
+                                                        <Button
+                                                            size="small"
+                                                            appearance="subtle"
+                                                            icon={<Delete24Regular />}
+                                                            disabled={actionLoading !== null}
+                                                            style={{ color: "var(--danger-color)" }}
+                                                        >
+                                                            移除
+                                                        </Button>
+                                                    </ConfirmPopover>
                                                 </div>
                                             </td>
                                         </tr>
@@ -351,8 +423,52 @@ export default function GlobalClientsPage() {
                                 })}
                             </tbody>
                         </table>
+                    )}
+                </div>
+
+                <div className="clients-pagination-bar">
+                    <div className="flex items-center gap-8">
+                        <Button
+                            size="small"
+                            appearance="subtle"
+                            icon={<ChevronLeft16Regular />}
+                            disabled={safePage <= 1}
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        />
+                        <span className="mono-code" style={{ fontWeight: 600 }}>
+                            {safePage} / {totalPages}
+                        </span>
+                        <Button
+                            size="small"
+                            appearance="subtle"
+                            icon={<ChevronRight16Regular />}
+                            disabled={safePage >= totalPages}
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        />
+                        <span style={{ marginLeft: 6 }}>
+                            {loading ? "正在加载" : "加载完毕"}
+                        </span>
                     </div>
-                )}
+
+                    <div className="flex items-center gap-6">
+                        <span>每页</span>
+                        <Select
+                            size="small"
+                            value={String(pageSize)}
+                            onChange={(_, d) => {
+                                setPageSize(Number(d.value) || 20);
+                                setCurrentPage(1);
+                            }}
+                            style={{ width: 72 }}
+                        >
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </Select>
+                        <span>条</span>
+                    </div>
+                </div>
             </div>
         </div>
     );

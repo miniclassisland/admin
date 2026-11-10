@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Spinner, Input, Button, Label } from "@fluentui/react-components";
 import { CheckmarkCircle24Filled, Settings24Regular } from "@fluentui/react-icons";
+import { MessageBar, MessageBarBody } from "@/components/ToastMessageBar";
 import { getAdminUrl, getMainSiteUrl } from "@/lib/api";
 
 export default function OobePage() {
@@ -219,9 +220,12 @@ export default function OobePage() {
                     )}
 
                     {statusText && (
-                        <div className={`oobe-alert-banner ${statusType === "error" ? "is-error" : "is-success"}`}>
-                            {statusText}
-                        </div>
+                        <MessageBar
+                            intent={statusType === "error" ? "error" : "success"}
+                            onDismiss={() => setStatusText("")}
+                        >
+                            <MessageBarBody>{statusText}</MessageBarBody>
+                        </MessageBar>
                     )}
                 </div>
             </div>

@@ -1,11 +1,6 @@
 "use client";
 
-/**
- * MINI ClassIsland 超级管理平台 — 全局账户与配额管理页面。
- * 支持：搜索账户、创建租户账户、编辑账户属性（名称/Slug/启用状态/注册模式）、管理租户配额、删除账户。
- */
-
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { adminApi } from "@/lib/api";
 import { useAccount } from "@/lib/account-context";
@@ -17,6 +12,7 @@ import type {
     RegistrationMode,
 } from "@/lib/types";
 import { QUOTA_META } from "@/lib/types";
+import { matchAdvancedQuery } from "@/lib/search-engine";
 import {
     Spinner,
     Badge,
@@ -24,8 +20,9 @@ import {
     Button,
     Switch,
     Label,
-    MessageBar,
-    MessageBarBody,
+    Popover,
+    PopoverTrigger,
+    PopoverSurface,
     Dialog,
     DialogSurface,
     DialogBody,
@@ -33,7 +30,9 @@ import {
     DialogContent,
     DialogActions,
 } from "@fluentui/react-components";
+import { MessageBar, MessageBarBody } from "@/components/ToastMessageBar";
 import { Select } from "@/components/CustomSelect";
+import { ConfirmPopover } from "@/components/ConfirmPopover";
 import {
     Search24Regular,
     Add24Regular,
@@ -42,6 +41,9 @@ import {
     DataUsage24Regular,
     Copy24Regular,
     Settings24Regular,
+    Filter16Regular,
+    ChevronLeft16Regular,
+    ChevronRight16Regular,
 } from "@fluentui/react-icons";
 
 const REG_MODE_LABELS: Record<string, string> = {
@@ -54,11 +56,14 @@ export default function AdminAccountsPage() {
     const router = useRouter();
     const { switchAccount, refreshAccounts } = useAccount();
     const [accountsList, setAccountsList] = useState<AccountOut[]>([]);
-    const [filtered, setFiltered] = useState<AccountOut[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+    const [modeFilter, setModeFilter] = useState<string>("all");
+    const [pageSize, setPageSize] = useState<number>(20);
+    const [currentPage, setCurrentPage] = useState<number>(1);
 
     // 创建账户对话框
     const [showCreate, setShowCreate] = useState(false);
@@ -77,31 +82,16 @@ export default function AdminAccountsPage() {
     const [loadingQuotas, setLoadingQuotas] = useState(false);
     const [savingQuotas, setSavingQuotas] = useState(false);
 
-    // 删除确认
-    const [deleteTarget, setDeleteTarget] = useState<AccountOut | null>(null);
-    const [deleting, setDeleting] = useState(false);
-
     useEffect(() => {
         loadAccounts();
     }, []);
-
-    useEffect(() => {
-        if (!searchQuery.trim()) {
-            setFiltered(accountsList);
-        } else {
-            const q = searchQuery.toLowerCase();
-            setFiltered(accountsList.filter(a =>
-                a.name.toLowerCase().includes(q) || a.slug.toLowerCase().includes(q)
-            ));
-        }
-    }, [searchQuery, accountsList]);
 
     async function loadAccounts() {
         setLoading(true);
         setError(null);
         try {
             const list = await adminApi.listAccounts();
-            setAccountsList(list);
+            setAccountsList(Array.isArray(list) ? list : []);
             await refreshAccounts();
         } catch (e) {
             setError(e instanceof Error ? e.message : "加载账户失败");
@@ -109,6 +99,34 @@ export default function AdminAccountsPage() {
             setLoading(false);
         }
     }
+
+    const filteredAccounts = useMemo(() => {
+        return accountsList.filter((a) => {
+            if (statusFilter === "active" && !a.is_active) return false;
+            if (statusFilter === "inactive" && a.is_active) return false;
+            const regMode = a.registration_mode || "pairing";
+            if (modeFilter !== "all" && regMode !== modeFilter) return false;
+            return matchAdvancedQuery(a, searchQuery, {
+                fields: {
+                    status: (item) => (item.is_active ? "active" : "inactive"),
+                    mode: (item) => [item.registration_mode || "pairing", REG_MODE_LABELS[item.registration_mode || "pairing"] || ""],
+                    name: (item) => item.name,
+                    slug: (item) => item.slug,
+                    id: (item) => item.id,
+                },
+                freeText: (item) => [
+                    item.name,
+                    item.slug,
+                    item.id,
+                    REG_MODE_LABELS[item.registration_mode || "pairing"],
+                ],
+            });
+        });
+    }, [accountsList, statusFilter, modeFilter, searchQuery]);
+
+    const totalPages = Math.max(1, Math.ceil(filteredAccounts.length / pageSize));
+    const safePage = Math.min(currentPage, totalPages);
+    const pagedAccounts = filteredAccounts.slice((safePage - 1) * pageSize, safePage * pageSize);
 
     async function handleCreate() {
         if (!createForm.name.trim()) return;
@@ -191,20 +209,15 @@ export default function AdminAccountsPage() {
         }
     }
 
-    async function handleDelete() {
-        if (!deleteTarget) return;
-        setDeleting(true);
+    async function handleDelete(acct: AccountOut) {
         setError(null);
         setSuccessMsg(null);
         try {
-            await adminApi.deleteAccount(deleteTarget.id);
-            setSuccessMsg(`租户账户 "${deleteTarget.name}" 已删除`);
-            setDeleteTarget(null);
+            await adminApi.deleteAccount(acct.id);
+            setSuccessMsg(`租户账户 "${acct.name}" 已删除`);
             await loadAccounts();
         } catch (e) {
             setError(e instanceof Error ? e.message : "删除账户失败");
-        } finally {
-            setDeleting(false);
         }
     }
 
@@ -218,35 +231,15 @@ export default function AdminAccountsPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">全局账户与配额管理</h1>
-                    <p className="page-subtitle">管理 MINI ClassIsland 所有多租户账户、子域路由 Slug、设备注册策略与资源配额</p>
+                    <p className="page-subtitle">管理 MINI ClassIsland 所有多租户账户、子域路由标识、设备注册策略与资源配额</p>
                 </div>
                 <Button
                     appearance="primary"
                     icon={<Add24Regular />}
-                    size="small"
                     onClick={() => setShowCreate(true)}
                 >
                     创建租户账户
                 </Button>
-            </div>
-
-            <div className="flex items-center gap-8 mb-16" style={{ flexWrap: "wrap" }}>
-                <Input
-                    placeholder="搜索账户名称或子域 Slug..."
-                    value={searchQuery}
-                    onChange={(_, d) => setSearchQuery(d.value)}
-                    style={{ width: 320, maxWidth: "100%" }}
-                    contentBefore={<Search24Regular />}
-                />
-                {searchQuery && (
-                    <Button
-                        size="small"
-                        appearance="subtle"
-                        onClick={() => setSearchQuery("")}
-                    >
-                        清除
-                    </Button>
-                )}
             </div>
 
             {error && (
@@ -261,18 +254,92 @@ export default function AdminAccountsPage() {
                 </MessageBar>
             )}
 
-            {loading ? (
-                <div className="flex items-center justify-center" style={{ height: 200 }}>
-                    <Spinner size="medium" />
+            <div className="clients-main-pane">
+                <div className="card" style={{ padding: "12px 16px", marginBottom: 0 }}>
+                    <div className="flex items-center gap-8" style={{ flexWrap: "wrap" }}>
+                        <Input
+                            placeholder="搜索账户名称、子域标识或高级过滤表达式"
+                            value={searchQuery}
+                            onChange={(_, d) => {
+                                setSearchQuery(d.value);
+                                setCurrentPage(1);
+                            }}
+                            contentBefore={<Search24Regular />}
+                            style={{ flex: 1, minWidth: 240, fontFamily: "var(--font-mono)" }}
+                        />
+
+                        <Popover withArrow positioning="below-end">
+                            <PopoverTrigger disableButtonEnhancement>
+                                <Button appearance="outline" icon={<Filter16Regular />}>
+                                    筛选
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverSurface style={{ padding: 12, width: 290 }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600 }}>状态筛选</div>
+                                    <Select
+                                        size="small"
+                                        value={statusFilter}
+                                        onChange={(_, d) => {
+                                            setStatusFilter(d.value as typeof statusFilter);
+                                            setCurrentPage(1);
+                                        }}
+                                    >
+                                        <option value="all">全部状态</option>
+                                        <option value="active">活跃</option>
+                                        <option value="inactive">已停用</option>
+                                    </Select>
+
+                                    <div style={{ fontSize: 12, fontWeight: 600, marginTop: 4 }}>终端接入模式</div>
+                                    <Select
+                                        size="small"
+                                        value={modeFilter}
+                                        onChange={(_, d) => {
+                                            setModeFilter(d.value);
+                                            setCurrentPage(1);
+                                        }}
+                                    >
+                                        <option value="all">全部模式</option>
+                                        {Object.entries(REG_MODE_LABELS).map(([k, v]) => (
+                                            <option key={k} value={k}>{v}</option>
+                                        ))}
+                                    </Select>
+                                </div>
+                            </PopoverSurface>
+                        </Popover>
+                    </div>
+
+                    <div
+                        style={{
+                            marginTop: 8,
+                            fontSize: 12.5,
+                            color: "var(--text-secondary)",
+                            display: "flex",
+                            gap: 14,
+                        }}
+                    >
+                        <span>{accountsList.length}个租户账户</span>
+                        <span>{filteredAccounts.length}已筛选</span>
+                    </div>
                 </div>
-            ) : (
-                <div className="card">
-                    <div className="table-container">
+
+                <div className="card" style={{ marginBottom: 0, padding: 0, overflow: "hidden" }}>
+                    {loading ? (
+                        <div className="empty-state">
+                            <Spinner size="medium" />
+                        </div>
+                    ) : pagedAccounts.length === 0 ? (
+                        <div className="empty-state">
+                            <div className="empty-state-text">
+                                {searchQuery ? "未找到匹配的账户" : "暂无账户数据"}
+                            </div>
+                        </div>
+                    ) : (
                         <table className="data-table">
                             <thead>
                                 <tr>
                                     <th>租户名称</th>
-                                    <th>子域名 Slug</th>
+                                    <th>子域名标识</th>
                                     <th>终端接入模式</th>
                                     <th>API Key</th>
                                     <th>状态</th>
@@ -281,13 +348,7 @@ export default function AdminAccountsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} style={{ textAlign: "center", color: "var(--text-secondary)" }}>
-                                            {searchQuery ? "未找到匹配的账户" : "暂无账户数据"}
-                                        </td>
-                                    </tr>
-                                ) : filtered.map(acct => (
+                                {pagedAccounts.map((acct) => (
                                     <tr key={acct.id}>
                                         <td style={{ fontWeight: 500 }}>{acct.name}</td>
                                         <td>
@@ -324,7 +385,7 @@ export default function AdminAccountsPage() {
                                                     appearance="primary"
                                                     size="small"
                                                     icon={<Settings24Regular />}
-                                                    title="进入该租户的集控管理后台（编辑课表、时间表、科目、策略、客户端等）"
+                                                    title="进入该租户的集控管理后台"
                                                     onClick={() => {
                                                         switchAccount(acct.id);
                                                         router.push("/dashboard");
@@ -356,22 +417,72 @@ export default function AdminAccountsPage() {
                                                         });
                                                     }}
                                                 />
-                                                <Button
-                                                    appearance="subtle"
-                                                    size="small"
-                                                    icon={<Delete24Regular />}
-                                                    title="删除账户"
-                                                    onClick={() => setDeleteTarget(acct)}
-                                                />
+                                                <ConfirmPopover
+                                                    message={`确定要删除租户账户「${acct.name}」吗？该账户的成员绑定、配额与预注册设备白名单将一并清理。`}
+                                                    onConfirm={() => handleDelete(acct)}
+                                                    confirmText="删除"
+                                                >
+                                                    <Button
+                                                        appearance="subtle"
+                                                        size="small"
+                                                        icon={<Delete24Regular />}
+                                                        title="删除账户"
+                                                        style={{ color: "var(--danger-color)" }}
+                                                    />
+                                                </ConfirmPopover>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                    )}
+                </div>
+
+                <div className="clients-pagination-bar">
+                    <div className="flex items-center gap-8">
+                        <Button
+                            size="small"
+                            appearance="subtle"
+                            icon={<ChevronLeft16Regular />}
+                            disabled={safePage <= 1}
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        />
+                        <span className="mono-code" style={{ fontWeight: 600 }}>
+                            {safePage} / {totalPages}
+                        </span>
+                        <Button
+                            size="small"
+                            appearance="subtle"
+                            icon={<ChevronRight16Regular />}
+                            disabled={safePage >= totalPages}
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        />
+                        <span style={{ marginLeft: 6 }}>
+                            {loading ? "正在加载" : "加载完毕"}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                        <span>每页</span>
+                        <Select
+                            size="small"
+                            value={String(pageSize)}
+                            onChange={(_, d) => {
+                                setPageSize(Number(d.value) || 20);
+                                setCurrentPage(1);
+                            }}
+                            style={{ width: 72 }}
+                        >
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </Select>
+                        <span>条</span>
                     </div>
                 </div>
-            )}
+            </div>
 
             {/* 创建租户账户对话框 */}
             {showCreate && (
@@ -383,16 +494,16 @@ export default function AdminAccountsPage() {
                                 <div className="form-group">
                                     <Label>租户名称 *</Label>
                                     <Input
-                                        placeholder="例如：第一中学电教中心"
+                                        placeholder="输入组织或学校名称"
                                         value={createForm.name}
                                         onChange={(_, d) => setCreateForm({ ...createForm, name: d.value })}
                                         style={{ width: "100%" }}
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <Label>子域名标识 Slug (可选，留空自动随机生成)</Label>
+                                    <Label>子域名标识（可选，留空自动随机生成）</Label>
                                     <Input
-                                        placeholder="留空随机生成如 account_1234abcd (小写字母、数字、连字符或下划线)"
+                                        placeholder="留空自动生成随机子域标识"
                                         value={createForm.slug || ""}
                                         onChange={(_, d) => setCreateForm({ ...createForm, slug: d.value })}
                                         style={{ width: "100%" }}
@@ -442,7 +553,7 @@ export default function AdminAccountsPage() {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <Label>子域名 Slug</Label>
+                                    <Label>子域名标识</Label>
                                     <Input
                                         value={editForm.slug || ""}
                                         onChange={(_, d) => setEditForm({ ...editForm, slug: d.value })}
@@ -510,7 +621,7 @@ export default function AdminAccountsPage() {
                                                             {meta.hint}
                                                             {meta.type === "number" && (
                                                                 <span style={{ marginLeft: 8, color: "var(--accent-color)", fontWeight: 500 }}>
-                                                                    (当前已用: {currentVal})
+                                                                    当前已用: {currentVal}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -554,36 +665,6 @@ export default function AdminAccountsPage() {
                                     disabled={loadingQuotas || savingQuotas}
                                 >
                                     {savingQuotas ? <Spinner size="tiny" /> : "保存配额"}
-                                </Button>
-                            </DialogActions>
-                        </DialogBody>
-                    </DialogSurface>
-                </Dialog>
-            )}
-
-            {/* 删除确认对话框 */}
-            {deleteTarget && (
-                <Dialog open onOpenChange={(_, d) => { if (!d.open) setDeleteTarget(null); }}>
-                    <DialogSurface>
-                        <DialogBody>
-                            <DialogTitle>确认删除租户账户</DialogTitle>
-                            <DialogContent>
-                                <p>
-                                    确定要删除租户账户 <strong>{deleteTarget.name}</strong> 吗？
-                                    该账户的成员绑定、配额与预注册设备白名单将一并清理，此操作不可撤销。
-                                </p>
-                            </DialogContent>
-                            <DialogActions>
-                                <Button appearance="secondary" onClick={() => setDeleteTarget(null)}>
-                                    取消
-                                </Button>
-                                <Button
-                                    appearance="primary"
-                                    onClick={handleDelete}
-                                    disabled={deleting}
-                                    style={{ background: "var(--danger-color)" }}
-                                >
-                                    {deleting ? <Spinner size="tiny" /> : "确认删除"}
                                 </Button>
                             </DialogActions>
                         </DialogBody>

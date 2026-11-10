@@ -10,7 +10,6 @@ import Link from "next/link";
 import { adminApi } from "@/lib/api";
 import type { PlatformStats } from "@/lib/types";
 import { Spinner, Button } from "@fluentui/react-components";
-import VersionLine from "@/components/VersionLine";
 import {
     People24Regular,
     PersonAccounts24Regular,
@@ -207,20 +206,6 @@ export default function AdminDashboard() {
                         </Link>
                     </div>
                 </div>
-            </div>
-
-            <div
-                style={{
-                    marginTop: 24,
-                    paddingTop: 16,
-                    borderTop: "1px solid var(--border-color)",
-                    textAlign: "center",
-                    fontSize: 12,
-                    color: "var(--text-secondary)",
-                    lineHeight: 1.6,
-                }}
-            >
-                <VersionLine />
             </div>
         </div>
     );

@@ -1,27 +1,29 @@
 /* ===== TypeScript 类型定义 ===== */
-/* MINI ClassIsland 超级管理平台 + 嵌套集控全量类型 */
+/* 对应后端 OpenAPI Schema + ClassIsland 上游数据模型 */
 
 // ============================================================
-// 全局平台统计
+// 认证相关
 // ============================================================
 
-export interface PlatformStats {
-    total_accounts: number;
-    active_accounts: number;
-    total_users: number;
-    pending_users: number;
-    total_clients: number;
-    online_clients: number;
-    total_audit_logs: number;
+export interface UserRegisterRequest {
+    email: string;
+    password: string;
+    username?: string;
+    display_name?: string;
+    role_code?: string;
+    can_create_account?: boolean;
+    cf_turnstile_response?: string;
 }
-
-// ============================================================
-// 认证与用户
-// ============================================================
 
 export interface UserLoginRequest {
     email: string;
     password: string;
+    cf_turnstile_response?: string;
+}
+
+export interface EmailAvailabilityRequest {
+    email: string;
+    cf_turnstile_response?: string;
 }
 
 export interface TokenResponse {
@@ -33,6 +35,20 @@ export interface TokenResponse {
     require_totp_reset?: boolean;
 }
 
+export interface MessageResponse {
+    status: string;
+    message: string;
+}
+
+export interface StatusResponse {
+    status: string;
+    message?: string;
+}
+
+// ============================================================
+// 用户、账户
+// ============================================================
+
 export interface UserOut {
     id: string;
     username: string;
@@ -40,8 +56,8 @@ export interface UserOut {
     display_name: string;
     role_code: string;
     is_active: boolean;
-    totp_enabled?: boolean;
     can_create_account?: boolean;
+    totp_enabled?: boolean;
     bound_qq_masked?: string | null;
     bound_qq?: string | null;
     qq_bound_manual?: boolean | null;
@@ -49,24 +65,25 @@ export interface UserOut {
     created_at: string;
 }
 
+export interface CommunityStatusResponse {
+    bound: boolean;
+    status: "unbound" | "joined" | "manual_pending";
+    qq_masked: string | null;
+    masked_qq?: string | null;
+    is_manual: boolean;
+    is_joined: boolean;
+    prompt?: string;
+}
+
 export interface UserUpdateRequest {
+    display_name?: string | null;
     username?: string | null;
     email?: string | null;
-    display_name?: string | null;
     role_code?: string | null;
     is_active?: boolean | null;
     can_create_account?: boolean | null;
     totp_enabled?: boolean | null;
     qq_uin?: string | null;
-}
-
-export interface UserRegisterRequest {
-    email: string;
-    password: string;
-    username?: string;
-    display_name?: string;
-    role_code?: string;
-    can_create_account?: boolean;
 }
 
 export interface EmailUpdate {
@@ -85,74 +102,6 @@ export interface PasswordChange {
     old_password: string;
     new_password: string;
 }
-
-// ============================================================
-// 2FA
-// ============================================================
-
-export interface TotpEnableResponse {
-    secret: string;
-    uri: string;
-    recovery_codes: string[];
-}
-
-export interface TotpConfirmRequest {
-    code: string;
-}
-
-export interface TotpDisableRequest {
-    password?: string;
-    totp_code?: string;
-    recovery_code?: string;
-    second_recovery_code?: string;
-    recovery_codes?: string[];
-}
-
-export interface TotpVerifyRequest {
-    temp_token: string;
-    code: string;
-}
-
-export interface TotpRecoverRequest {
-    temp_token: string;
-    recovery_code: string;
-}
-
-export interface CertificateIssueRequest {
-    password: string;
-    totp_code?: string;
-    recovery_code?: string;
-    device_name?: string;
-}
-
-export interface CertificateIssueResponse {
-    code: string;
-    deeplink: string;
-    expires_in: number;
-    cert_id: string;
-    family_id: string;
-    generation: number;
-    max_generation: number;
-    issued_at: number;
-    expires_at: number;
-}
-
-export interface LoginCertificateItem {
-    cert_id: string;
-    family_id: string;
-    generation: number;
-    max_generation: number;
-    issued_at: number;
-    expires_at: number;
-    last_used_at: number;
-    redeemed: boolean;
-    device_name: string;
-    can_rotate: boolean;
-}
-
-// ============================================================
-// 账户与配额
-// ============================================================
 
 export type RegistrationMode = "open" | "pairing" | "pre_reg";
 
@@ -205,6 +154,14 @@ export interface AccountNameUpdate {
     registration_mode?: RegistrationMode;
 }
 
+export interface AccountInfoUpdate {
+    new_id?: string;
+    name?: string;
+    slug?: string;
+    is_active?: boolean;
+    registration_mode?: RegistrationMode;
+}
+
 export interface QuotaOut {
     id: string;
     account_id: string;
@@ -249,7 +206,126 @@ export const QUOTA_META: Record<string, { label: string; hint: string; type: "nu
         type: "boolean",
         defaultMax: 1,
     },
+    "feature.risk": {
+        label: "风险功能",
+        hint: "允许该账户使用远程代码执行、屏幕截图和模拟点击",
+        type: "boolean",
+        defaultMax: 1,
+    },
 };
+
+export interface ApproveUserRequest {
+    can_create_account?: boolean;
+    quotas?: Record<string, number>;
+    max_clients?: number;
+    max_grpc_connections?: number;
+    max_bandwidth_mb?: number;
+    feature_ota?: number;
+    feature_audit?: number;
+    feature_risk?: number;
+}
+
+// ============================================================
+// 2FA
+// ============================================================
+
+export interface TotpEnableResponse {
+    secret: string;
+    uri: string;
+    recovery_codes: string[];
+}
+
+export interface TotpConfirmRequest {
+    code: string;
+}
+
+export interface TotpDisableRequest {
+    password?: string;
+    totp_code?: string;
+    recovery_code?: string;
+    second_recovery_code?: string;
+    recovery_codes?: string[];
+}
+
+export interface TotpVerifyRequest {
+    temp_token: string;
+    code: string;
+}
+
+export interface TotpRecoverRequest {
+    temp_token: string;
+    recovery_code: string;
+}
+
+// ============================================================
+// 登录安全证书 (Login Security Certificate)
+// ============================================================
+
+export interface CertificateIssueRequest {
+    password: string;
+    totp_code?: string;
+    recovery_code?: string;
+    device_name?: string;
+}
+
+export interface CertificateIssueResponse {
+    code: string;
+    deeplink: string;
+    expires_in: number;
+    cert_id: string;
+    family_id: string;
+    generation: number;
+    max_generation: number;
+    issued_at: number;
+    expires_at: number;
+}
+
+export interface LoginCertificateItem {
+    cert_id: string;
+    family_id: string;
+    generation: number;
+    max_generation: number;
+    issued_at: number;
+    expires_at: number;
+    last_used_at: number;
+    redeemed: boolean;
+    device_name: string;
+    can_rotate: boolean;
+}
+
+export interface LoginCertificateFull {
+    cert_id: string;
+    family_id: string;
+    user_id: string;
+    cert_secret: string;
+    generation: number;
+    max_generation: number;
+    issued_at: number;
+    expires_at: number;
+    device_name: string;
+}
+
+export interface CertificateRedeemResponse {
+    certificate: LoginCertificateFull;
+    token: string;
+    expires_in: number;
+}
+
+export interface CertificateSessionResponse {
+    token: string;
+    expires_in: number;
+    cert_id: string;
+    generation: number;
+    max_generation: number;
+    cert_expires_at: number;
+    can_rotate: boolean;
+}
+
+export interface CertificateRotateResponse {
+    certificate: LoginCertificateFull;
+    token: string;
+    expires_in: number;
+}
 
 // ============================================================
 // 客户端档案分配配置 (7 大资源)
@@ -267,7 +343,7 @@ export interface ClientProfileConfig {
 }
 
 // ============================================================
-// 配对码与预注册
+// 配对码
 // ============================================================
 
 export interface PairingCodeOut {
@@ -290,6 +366,10 @@ export interface PairingStatusResponse {
     registration_mode: RegistrationMode;
 }
 
+// ============================================================
+// 预注册客户端
+// ============================================================
+
 export interface PreRegOut {
     id: string;
     account_id: string;
@@ -310,7 +390,7 @@ export interface PreRegCreate {
 }
 
 // ============================================================
-// 访问控制与邀请管理
+// 访问控制
 // ============================================================
 
 export interface AccessMember {
@@ -328,12 +408,17 @@ export interface AccessRoleUpdate {
     role_in_account: string;
 }
 
+/** 账户内角色 */
 export const ACCOUNT_ROLE_LABELS: Record<string, string> = {
     owner: "所有者",
     admin: "管理员",
     member: "成员",
     viewer: "观察者",
 };
+
+// ============================================================
+// 邀请管理
+// ============================================================
 
 export interface InvitationOut {
     id: string;
@@ -355,7 +440,65 @@ export interface InvitationCreate {
 }
 
 // ============================================================
-// 通知与批量操作
+// 系统设置
+// ============================================================
+
+/** Admin 设置白名单键 */
+export const SETTINGS_ALLOWED_KEYS = [
+    "registration_open",
+    "require_approval",
+    "max_accounts_per_user",
+    "default_role",
+    "announcement_title",
+    "motd",
+] as const;
+
+export const SETTINGS_LABELS: Record<string, { label: string; hint: string; type: "boolean" | "number" | "string" | "textarea"; placeholder?: string }> = {
+    registration_open: {
+        label: "开放注册",
+        hint: "允许新用户自助注册平台账号",
+        type: "boolean",
+    },
+    require_approval: {
+        label: "注册审核",
+        hint: "新注册用户需要超级管理员审核批准后才能激活",
+        type: "boolean",
+    },
+    max_accounts_per_user: {
+        label: "每用户最大账户数",
+        hint: "单个用户可创建的最大多租户账户数量",
+        type: "number",
+    },
+    default_role: {
+        label: "默认角色",
+        hint: "新注册用户的默认系统角色代码",
+        type: "string",
+    },
+    announcement_title: {
+        label: "站内公告标题",
+        hint: "显示在站内顶部赞助横幅下方；标题和副标题都为空时不显示公告",
+        type: "string",
+        placeholder: "输入站内公告标题",
+    },
+    motd: {
+        label: "站内公告副标题/内容",
+        hint: "点击站内公告横幅后展示的具体内容",
+        type: "textarea",
+        placeholder: "输入站内公告详细内容",
+    },
+};
+
+export interface SettingsUpdate {
+    items: Record<string, string>;
+}
+
+export interface SiteAnnouncement {
+    title: string;
+    subtitle: string;
+}
+
+// ============================================================
+// 通知
 // ============================================================
 
 export interface NotificationPayload {
@@ -371,6 +514,10 @@ export interface NotificationPayload {
     DurationSeconds?: number;
     RepeatCounts?: number;
 }
+
+// ============================================================
+// 批量操作
+// ============================================================
 
 export type BatchOpType = "create" | "write" | "update" | "delete";
 
@@ -388,12 +535,24 @@ export interface BatchRequest {
 
 export interface ClientBatchRequest {
     client_uids: string[];
-    action: "force_sync" | "restart" | "disconnect" | "enable" | "disable" | "delete" | "assign_profile";
+    action:
+        | "force_sync"
+        | "restart"
+        | "disconnect"
+        | "enable"
+        | "disable"
+        | "delete"
+        | "remove"
+        | "lock"
+        | "unlock"
+        | "send_notification"
+        | "assign_profile";
     profile_config?: ClientProfileConfig | null;
+    notification?: NotificationPayload | null;
 }
 
 // ============================================================
-// 资源类型与 ClassIsland 上游数据模型
+// 资源类型
 // ============================================================
 
 export type ResourceType =
@@ -420,13 +579,59 @@ export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
     TimeLayout: "时间表",
     Subjects: "科目",
     Policy: "策略",
-    DefaultSettings: "默认设置",
-    Components: "组件设置",
+    DefaultSettings: "设置",
+    Components: "组件",
     Credentials: "凭据",
 };
 
+// ============================================================
+// 系统角色
+// ============================================================
+
+export const SYSTEM_ROLES = {
+    BANNED: "banned",
+    PENDING: "pending",
+    NORMAL: "normal",
+    ADMIN: "admin",
+    SUPERADMIN: "superadmin",
+} as const;
+
+export const ROLE_LABELS: Record<string, string> = {
+    banned: "已封禁",
+    pending: "待激活",
+    normal: "普通用户",
+    admin: "管理员",
+    superadmin: "超级管理员",
+};
+
+// ============================================================
+// ClassIsland 上游数据模型
+// ============================================================
+
 /** 上游 ClassIsland 空 GUID 常量 (Guid.Empty) */
 export const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
+
+/** 全局课表群 GUID 常量 */
+export const GLOBAL_CLASSPLAN_GROUP_GUID = "00000000-0000-0000-0000-000000000000";
+
+/** 默认课表群 GUID 常量 */
+export const DEFAULT_CLASSPLAN_GROUP_GUID = "00000000-0000-0000-0000-000000000001";
+
+/** 单双周名称 */
+export const WEEK_DIV_LABELS: Record<number, string> = {
+    0: "不限",
+    1: "单周",
+    2: "双周",
+};
+
+/** 附加对象映射表 */
+export type AttachedObjectsMap = Record<string, unknown>;
+
+/** 归一化 GUID 字符串以便比较 */
+export function normalizeGuidKey(id?: string | null): string {
+    if (!id) return "";
+    return id.trim().replace(/^\{|\}$/g, "").toLowerCase();
+}
 
 /** 判断 GUID 是否为空或 Guid.Empty */
 export function isEmptyGuid(id?: string | null): boolean {
@@ -440,6 +645,7 @@ export function toUpstreamGuidOrEmpty(id?: string | null): string {
     return isEmptyGuid(id) ? EMPTY_GUID : id!.trim();
 }
 
+/** 科目 */
 export interface Subject {
     Name: string;
     Initial: string;
@@ -449,6 +655,7 @@ export interface Subject {
     AttachableSettings?: Record<string, unknown>;
 }
 
+/** 时间点类型: 0=上课, 1=课间, 2=分割线, 3=行动 */
 export type TimeType = 0 | 1 | 2 | 3;
 
 export const TIME_TYPE_LABELS: Record<TimeType, string> = {
@@ -557,6 +764,7 @@ export const BUILTIN_ACTIONS: BuiltinActionMeta[] = [
     },
 ];
 
+/** 时间表项 (兼容 StartSecond/EndSecond DateTime 与 StartTime/EndTime) */
 export interface TimeLayoutItem {
     StartSecond?: string;
     EndSecond?: string;
@@ -571,6 +779,7 @@ export interface TimeLayoutItem {
     AttachableSettings?: Record<string, unknown>;
 }
 
+/** 时间表 */
 export interface TimeLayout {
     Name: string;
     Layouts: TimeLayoutItem[];
@@ -578,6 +787,7 @@ export interface TimeLayout {
     AttachableSettings?: Record<string, unknown>;
 }
 
+/** 课程信息 */
 export interface ClassInfo {
     SubjectId: string;
     IsChangedClass?: boolean;
@@ -586,12 +796,14 @@ export interface ClassInfo {
     AttachableSettings?: Record<string, unknown>;
 }
 
+/** 课表触发规则 */
 export interface TimeRule {
     WeekDay: number;
     WeekCountDiv: number;
     WeekCountDivTotal: number;
 }
 
+/** 课表 */
 export interface ClassPlan {
     Name: string;
     TimeLayoutId: string;
@@ -606,11 +818,13 @@ export interface ClassPlan {
     AttachableSettings?: Record<string, unknown>;
 }
 
+/** 课表群 */
 export interface ClassPlanGroup {
     Name: string;
     IsGlobal?: boolean;
 }
 
+/** 档案 */
 export interface Profile {
     Name: string;
     TimeLayouts: Record<string, TimeLayout>;
@@ -623,6 +837,7 @@ export interface Profile {
     TempOverlayClassPlanSetupTime?: string;
 }
 
+/** 管理策略 */
 export interface ManagementPolicy {
     DisableProfileClassPlanEditing?: boolean;
     DisableProfileTimeLayoutEditing?: boolean;
@@ -635,6 +850,7 @@ export interface ManagementPolicy {
     DisableEasterEggs?: boolean;
 }
 
+/** 管理服务器类型: 0=无服务器, 1=集控服务器 */
 export type ManagementServerKind = 0 | 1;
 
 export const MANAGEMENT_SERVER_KIND_LABELS: Record<ManagementServerKind, string> = {
@@ -642,6 +858,7 @@ export const MANAGEMENT_SERVER_KIND_LABELS: Record<ManagementServerKind, string>
     1: "集控服务器",
 };
 
+/** 引导设置 (ManagementSettings / ManagementPreset.json) */
 export interface ManagementSettings {
     IsManagementEnabled?: boolean;
     ManagementServerKind?: ManagementServerKind;
@@ -813,6 +1030,7 @@ export interface AppDefaultSettings {
     [key: string]: unknown;
 }
 
+/** 授权等级: 0=无, 1=用户认证, 2=管理员认证 */
 export type AuthorizeLevel = 0 | 1 | 2;
 
 export const AUTHORIZE_LEVEL_LABELS: Record<AuthorizeLevel, string> = {
@@ -821,6 +1039,7 @@ export const AUTHORIZE_LEVEL_LABELS: Record<AuthorizeLevel, string> = {
     2: "管理员认证",
 };
 
+/** 凭据配置 */
 export interface ManagementCredentialConfig {
     UserCredential?: string;
     AdminCredential?: string;
@@ -835,6 +1054,7 @@ export interface ManagementCredentialConfig {
     ChangeLessonsAuthorizeLevel?: AuthorizeLevel;
 }
 
+/** 水平对齐方式 */
 export type HorizontalAlignmentType = 0 | 1 | 2 | 3;
 
 export const HORIZONTAL_ALIGNMENT_LABELS: Record<HorizontalAlignmentType, string> = {
@@ -844,17 +1064,20 @@ export const HORIZONTAL_ALIGNMENT_LABELS: Record<HorizontalAlignmentType, string
     3: "右对齐",
 };
 
+/** 组件设置项 (ComponentSettings) */
 export interface ComponentSettingsItem {
     Id?: string;
     NameCache?: string;
     Settings?: unknown;
     HideOnRule?: boolean;
     HidingRules?: unknown;
+    /* 字体大小 */
     IsResourceOverridingEnabled?: boolean;
     MainWindowSecondaryFontSize?: number;
     MainWindowBodyFontSize?: number;
     MainWindowEmphasizedFontSize?: number;
     MainWindowLargeFontSize?: number;
+    /* 颜色 */
     IsCustomForegroundColorEnabled?: boolean;
     ForegroundColor?: string;
     IsCustomBackgroundColorEnabled?: boolean;
@@ -864,6 +1087,7 @@ export interface ComponentSettingsItem {
     IsCustomCornerRadiusEnabled?: boolean;
     CustomCornerRadius?: number;
     Opacity?: number;
+    /* 布局 */
     RelativeLineNumber?: number;
     HorizontalAlignment?: HorizontalAlignmentType;
     IsMinWidthEnabled?: boolean;
@@ -880,6 +1104,7 @@ export interface ComponentSettingsItem {
     LastWidthCache?: number;
 }
 
+/** 主界面行设置 (MainWindowLineSettings) */
 export interface ComponentLineSettings {
     Children: ComponentSettingsItem[];
     IslandSeparationMode?: number;
@@ -904,6 +1129,7 @@ export interface ComponentLineSettings {
     Opacity?: number;
 }
 
+/** 组件配置档案 (ComponentProfile) */
 export interface ComponentProfile {
     Lines: ComponentLineSettings[];
 }
@@ -1100,6 +1326,31 @@ export const BUILTIN_COMPONENTS: BuiltinComponentMeta[] = [
 // 客户端设备与远程上报/审计
 // ============================================================
 
+export interface PluginComponentItem {
+    id: string;
+    name: string;
+    description?: string | null;
+    iconGlyph?: string | null;
+    isComponentContainer?: boolean;
+    hasSettingsControl?: boolean;
+    componentTypeName?: string | null;
+    settingsTypeName?: string | null;
+    assemblyName?: string | null;
+    isBuiltIn?: boolean;
+    sourceClientUid?: string;
+    sourceClientName?: string;
+}
+
+export interface PlatformStats {
+    total_accounts: number;
+    active_accounts: number;
+    total_users: number;
+    pending_users: number;
+    total_clients: number;
+    online_clients: number;
+    total_audit_logs: number;
+}
+
 export interface ClientDeviceOut {
     uid: string;
     account_id?: string;
@@ -1110,7 +1361,13 @@ export interface ClientDeviceOut {
     mac: string;
     ip: string | null;
     is_disabled: boolean;
+    is_app_locked?: boolean;
     status: "online" | "offline" | "disabled";
+    extend_management_enabled?: boolean;
+    extend_management_version?: string | null;
+    plugin_settings?: unknown;
+    plugin_components?: unknown;
+    hardware_info?: Record<string, unknown> | null;
     registered_at: string | null;
     last_seen_at: string | null;
     profile_config: ClientProfileConfig;
@@ -1211,82 +1468,19 @@ export interface AuditLogItem {
 }
 
 // ============================================================
-// 系统设置與角色
+// 2FA 登录流中间态
 // ============================================================
 
-export const SETTINGS_ALLOWED_KEYS = [
-    "registration_open",
-    "require_approval",
-    "max_accounts_per_user",
-    "default_role",
-    "announcement_title",
-    "motd",
-] as const;
-
-export interface SettingsUpdate {
-    items: Record<string, string>;
+export interface TwoFARequired {
+    requires_2fa: true;
+    temp_token: string;
 }
 
-export const SYSTEM_ROLES = {
-    BANNED: "banned",
-    PENDING: "pending",
-    NORMAL: "normal",
-    ADMIN: "admin",
-    SUPERADMIN: "superadmin",
-} as const;
+export type LoginResult = TokenResponse | TwoFARequired;
 
-export const ROLE_LABELS: Record<string, string> = {
-    banned: "已封禁",
-    pending: "待审核",
-    normal: "普通用户",
-    admin: "管理员",
-    superadmin: "超级管理员",
-};
-
-export interface StatusResponse {
-    status: string;
-    message?: string;
-}
-
-export interface MessageResponse {
-    status: string;
-    message: string;
-}
-
-export const SETTINGS_LABELS: Record<string, { label: string; hint: string; type: "boolean" | "number" | "string" | "textarea"; placeholder?: string }> = {
-    registration_open: {
-        label: "开放注册",
-        hint: "允许新用户自助注册平台账号",
-        type: "boolean",
-    },
-    require_approval: {
-        label: "注册审核",
-        hint: "新注册用户需要超级管理员审核批准后才能激活",
-        type: "boolean",
-    },
-    max_accounts_per_user: {
-        label: "每用户最大账户数",
-        hint: "单个用户可创建的最大多租户账户数量",
-        type: "number",
-    },
-    default_role: {
-        label: "默认角色",
-        hint: "新注册用户的默认系统角色代码",
-        type: "string",
-    },
-    announcement_title: {
-        label: "站内公告标题",
-        hint: "显示在站内顶部赞助横幅下方；标题和副标题都为空时不显示公告",
-        type: "string",
-        placeholder: "输入站内公告标题",
-    },
-    motd: {
-        label: "站内公告副标题/内容",
-        hint: "点击站内公告横幅后展示的具体内容",
-        type: "textarea",
-        placeholder: "输入站内公告详细内容",
-    },
-};
+// ============================================================
+// 周几名称
+// ============================================================
 
 export const WEEKDAY_LABELS = [
     "周日", "周一", "周二", "周三", "周四", "周五", "周六"
@@ -1361,6 +1555,13 @@ export interface TicketListResponse {
     items: TicketItem[];
 }
 
+export interface TicketCreateRequest {
+    subject: string;
+    content: string;
+    category: TicketCategory;
+    priority: TicketPriority;
+}
+
 export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
     open: "待处理",
     in_progress: "处理中",
@@ -1382,3 +1583,22 @@ export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
     feature: "功能建议",
     other: "其他",
 };
+
+// ============================================================
+// 反向移动端扫码登录网页 (Mobile -> Web QR Login)
+// ============================================================
+
+export interface QrLoginCreateResponse {
+    code: string;
+    deeplink: string;
+    expires_in: number;
+    expires_at: number;
+}
+
+export interface QrLoginPollResponse {
+    status: "pending" | "authorized" | "expired";
+    token?: string;
+    user_id?: string;
+    expires_at?: number;
+}
+

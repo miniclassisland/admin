@@ -53,6 +53,8 @@ import type {
     TicketStatus,
     ExtendCommandDispatchResult,
     ExtendCommandBroadcastResult,
+    PluginComponentItem,
+    ApproveUserRequest,
 } from "./types";
 
 // ============================================================
@@ -718,8 +720,18 @@ export const clients = {
         post<{ status: string; results: Array<{ uid: string; status: string }> }>(`${acctPath(accountId)}/client/batch`, req),
     restart: (accountId: string, clientId: string) =>
         post<StatusResponse>(`${acctPath(accountId)}/client/${encodeURIComponent(clientId)}/command/restart`),
+    lock: (accountId: string, clientId: string) =>
+        post<{ status: string; delivered: boolean; is_app_locked: boolean; message: string }>(
+            `${acctPath(accountId)}/client/${encodeURIComponent(clientId)}/command/lock`
+        ),
+    unlock: (accountId: string, clientId: string) =>
+        post<{ status: string; delivered: boolean; is_app_locked: boolean; message: string }>(
+            `${acctPath(accountId)}/client/${encodeURIComponent(clientId)}/command/unlock`
+        ),
     forceSync: (accountId: string, clientId: string) =>
         post<StatusResponse>(`${acctPath(accountId)}/client/${encodeURIComponent(clientId)}/command/update-data`),
+    getPluginComponents: (accountId: string) =>
+        get<{ totalCount?: number; components: PluginComponentItem[] }>(`${acctPath(accountId)}/client/plugin-components`),
     sendNotification: (accountId: string, clientId: string, payload: NotificationPayload) =>
         post<StatusResponse>(`${acctPath(accountId)}/client/${encodeURIComponent(clientId)}/command/send-notification`, payload),
     broadcastNotification: (accountId: string, payload: NotificationPayload, clientUids?: string[]) =>
@@ -835,8 +847,8 @@ export const adminApi = {
     listPendingUsers: () =>
         get<UserOut[]>("/user/pending/list"),
 
-    approveUser: (userId: string) =>
-        post<UserOut>(`/user/pending/approve/${encodeURIComponent(userId)}`),
+    approveUser: (userId: string, body?: ApproveUserRequest) =>
+        post<UserOut>(`/user/pending/approve/${encodeURIComponent(userId)}`, body || {}),
 
     rejectUser: (userId: string) =>
         post<{ status: string }>(`/user/pending/reject/${encodeURIComponent(userId)}`),
