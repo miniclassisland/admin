@@ -40,6 +40,7 @@ import type {
     MessageResponse,
     TokenResponse,
     ResourceType,
+    ResourceWriteResponse,
     ClientDeviceOut,
     ClientProfileConfig,
     ConfigUploadItem,
@@ -55,6 +56,10 @@ import type {
     ExtendCommandBroadcastResult,
     PluginComponentItem,
     ApproveUserRequest,
+    EditSessionCreateRequest,
+    EditSessionSummary,
+    AccountRealtimeEvent,
+    RealtimeSubscribeHandlers,
 } from "./types";
 
 // ============================================================
@@ -668,10 +673,10 @@ export const data = {
         get<{ token: string; url: string }>(`${acctPath(accountId)}/${type}/token?name=${encodeURIComponent(name)}`),
     deleteData: (accountId: string, type: ResourceType, name: string) =>
         del<StatusResponse>(`${acctPath(accountId)}/${type}/delete?name=${encodeURIComponent(name)}`),
-    write: (accountId: string, type: ResourceType, name: string, payload: unknown) =>
-        post<StatusResponse>(`${acctPath(accountId)}/${type}/write?name=${encodeURIComponent(name)}`, payload),
-    patch: (accountId: string, type: ResourceType, name: string, payload: unknown) =>
-        patch<StatusResponse>(`${acctPath(accountId)}/${type}/update?name=${encodeURIComponent(name)}`, payload),
+    write: (accountId: string, type: ResourceType, name: string, payload: unknown, sync: boolean = false) =>
+        post<ResourceWriteResponse>(`${acctPath(accountId)}/${type}/write?name=${encodeURIComponent(name)}${sync ? "&sync=true" : ""}`, payload),
+    patch: (accountId: string, type: ResourceType, name: string, payload: unknown, sync: boolean = false) =>
+        patch<ResourceWriteResponse>(`${acctPath(accountId)}/${type}/update?name=${encodeURIComponent(name)}${sync ? "&sync=true" : ""}`, payload),
     read: (accountId: string, type: ResourceType, name: string) =>
         get<unknown>(`${acctPath(accountId)}/${type}/${encodeURIComponent(name)}`),
     listHistory: (accountId: string, type: ResourceType, name: string) =>
@@ -747,6 +752,27 @@ export const clients = {
         get<ConfigUploadItem[]>(`${acctPath(accountId)}/client/${encodeURIComponent(clientId)}/config-uploads`),
     getConfigUploadDetail: (accountId: string, requestGuid: string) =>
         get<ConfigUploadItem>(`${acctPath(accountId)}/config-upload/${encodeURIComponent(requestGuid)}`),
+    getScreenshotBlobUrl: async (
+        accountId: string,
+        requestGuid: string,
+    ): Promise<{ blobUrl: string; mimeType: string }> => {
+        const token = getToken();
+        const res = await fetch(
+            `${getAdminUrl()}${acctPath(accountId)}/screenshot/${encodeURIComponent(requestGuid)}`,
+            {
+                method: "GET",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            },
+        );
+        if (!res.ok) {
+            throw new ApiError(res.status, await res.text().catch(() => "获取截图失败"));
+        }
+        const blob = await res.blob();
+        return {
+            blobUrl: URL.createObjectURL(blob),
+            mimeType: blob.type || res.headers.get("content-type") || "image/png",
+        };
+    },
     sendExtendCommand: (
         accountId: string,
         clientId: string,
@@ -774,6 +800,183 @@ export const clients = {
                 ttl_seconds: ttlSeconds,
             },
         ),
+};
+
+export const editSessions = {
+    create: (accountId: string, body: EditSessionCreateRequest) =>
+        post<{ status: string; command_request_guid: string; session: EditSessionSummary }>(
+            `${acctPath(accountId)}/edit-session/create`,
+            body,
+        ),
+    list: (accountId: string) =>
+        get<{ sessions: EditSessionSummary[] }>(`${acctPath(accountId)}/edit-session/list`),
+    close: (accountId: string, sessionId: string) =>
+        del<{ status: string; session_id: string }>(
+            `${acctPath(accountId)}/edit-session/${encodeURIComponent(sessionId)}`,
+        ),
+};
+
+const SSE_BACKOFF_MS = [1000, 2000, 5000, 10000];
+
+function subscribeSseStream(
+    getUrl: () => string,
+    handlers: RealtimeSubscribeHandlers,
+    opts?: {
+        requireAuth?: boolean;
+        defaultAccountId?: string;
+        shouldStop?: (evt: AccountRealtimeEvent) => boolean;
+    },
+): () => void {
+    if (typeof window === "undefined") {
+        return () => {};
+    }
+    const requireAuth = opts?.requireAuth !== false;
+    const defaultAccountId = opts?.defaultAccountId || "";
+    let stopped = false;
+    let controller: AbortController | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempt = 0;
+
+    const cleanup = () => {
+        stopped = true;
+        if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+        }
+        if (controller) {
+            controller.abort();
+            controller = null;
+        }
+    };
+
+    const scheduleReconnect = () => {
+        if (stopped) return;
+        const delay = SSE_BACKOFF_MS[Math.min(attempt, SSE_BACKOFF_MS.length - 1)];
+        attempt += 1;
+        reconnectTimer = setTimeout(() => {
+            reconnectTimer = null;
+            void connect();
+        }, delay);
+    };
+
+    const dispatchRawBlock = (rawBlock: string) => {
+        const lines = rawBlock.split("\n");
+        let eventName = "";
+        const dataLines: string[] = [];
+        for (const line of lines) {
+            if (!line || line.startsWith(":")) continue;
+            const colonIdx = line.indexOf(":");
+            const field = colonIdx >= 0 ? line.slice(0, colonIdx).trim() : line.trim();
+            let value = colonIdx >= 0 ? line.slice(colonIdx + 1) : "";
+            if (value.startsWith(" ")) value = value.slice(1);
+            if (field === "event") {
+                eventName = value.trim();
+            } else if (field === "data") {
+                dataLines.push(value);
+            }
+        }
+        if (dataLines.length === 0) return;
+        const rawData = dataLines.join("\n");
+        try {
+            const parsed = JSON.parse(rawData) as Partial<AccountRealtimeEvent> & Record<string, unknown>;
+            const normalized: AccountRealtimeEvent = {
+                event: parsed.event || eventName || (typeof parsed.type === "string" ? parsed.type : "") || "message",
+                account_id: parsed.account_id || defaultAccountId,
+                timestamp: parsed.timestamp || (typeof parsed.ts === "string" ? parsed.ts : "") || new Date().toISOString(),
+                data:
+                    parsed.data && typeof parsed.data === "object"
+                        ? (parsed.data as Record<string, unknown>)
+                        : {},
+            };
+            handlers.onEvent(normalized);
+            if (opts?.shouldStop?.(normalized)) {
+                cleanup();
+            }
+        } catch {
+            // Ignore malformed SSE JSON payload
+        }
+    };
+
+    const connect = async () => {
+        if (stopped) return;
+        const token = getToken();
+        if (requireAuth && !token) return;
+        const url = getUrl();
+        if (!url) return;
+        controller = new AbortController();
+        const headers: Record<string, string> = {
+            Accept: "text/event-stream",
+        };
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+        try {
+            const res = await fetch(url, {
+                method: "GET",
+                headers,
+                cache: "no-store",
+                signal: controller.signal,
+            });
+            if (res.status === 401 || res.status === 403) {
+                handlers.onError?.(new ApiError(res.status, "实时事件流鉴权失败"));
+                return;
+            }
+            if (res.status === 400 || res.status === 404) {
+                handlers.onError?.(new ApiError(res.status, `SSE HTTP ${res.status}`));
+                return;
+            }
+            if (!res.ok || !res.body) {
+                throw new Error(`SSE HTTP ${res.status}`);
+            }
+            attempt = 0;
+            handlers.onOpen?.();
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            while (!stopped) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true })
+                    .replace(/\r\n/g, "\n")
+                    .replace(/\r/g, "\n");
+                let boundary = buffer.indexOf("\n\n");
+                while (boundary !== -1) {
+                    const block = buffer.slice(0, boundary);
+                    buffer = buffer.slice(boundary + 2);
+                    if (block.trim()) {
+                        dispatchRawBlock(block);
+                    }
+                    boundary = buffer.indexOf("\n\n");
+                }
+            }
+            if (!stopped) {
+                scheduleReconnect();
+            }
+        } catch (err) {
+            if (stopped) return;
+            if (err instanceof DOMException && err.name === "AbortError") return;
+            handlers.onError?.(err);
+            scheduleReconnect();
+        }
+    };
+
+    void connect();
+
+    return cleanup;
+}
+
+export const realtime = {
+    subscribe: (accountId: string, handlers: RealtimeSubscribeHandlers): () => void => {
+        if (typeof window === "undefined" || !accountId) {
+            return () => {};
+        }
+        return subscribeSseStream(
+            () => `${getAdminUrl()}${acctPath(accountId)}/events`,
+            handlers,
+            { requireAuth: true, defaultAccountId: accountId },
+        );
+    },
 };
 
 export const audit = {
@@ -940,12 +1143,61 @@ export const adminApi = {
     getTicketUnreadCount: () =>
         get<{ count: number }>("/ticket/unread-count"),
 
+    // ---- 配额与权限审批通道 ----
+    listApprovalRequests: (params?: {
+        offset?: number;
+        limit?: number;
+        status?: import("./types").ApprovalRequestStatus;
+        requestType?: import("./types").ApprovalRequestType;
+        accountId?: string;
+        q?: string;
+    }) => {
+        const searchParams = new URLSearchParams();
+        if (params?.offset !== undefined) searchParams.set("offset", String(params.offset));
+        if (params?.limit !== undefined) searchParams.set("limit", String(params.limit));
+        if (params?.status) searchParams.set("status", params.status);
+        if (params?.requestType) searchParams.set("request_type", params.requestType);
+        if (params?.accountId?.trim()) searchParams.set("account_id", params.accountId.trim());
+        if (params?.q?.trim()) searchParams.set("q", params.q.trim());
+        const qs = searchParams.toString();
+        return get<import("./types").ApprovalRequestListResponse>(
+            `/approval-request/list${qs ? `?${qs}` : ""}`,
+        );
+    },
+
+    getPendingApprovalRequestCount: () =>
+        get<{ count: number }>("/approval-request/pending-count"),
+
+    approveApprovalRequest: (
+        requestId: string,
+        payload?: import("./types").ApprovalRequestReview,
+    ) =>
+        post<import("./types").ApprovalRequestItem>(
+            `/approval-request/${encodeURIComponent(requestId)}/approve`,
+            payload || {},
+        ),
+
+    rejectApprovalRequest: (
+        requestId: string,
+        payload?: import("./types").ApprovalRequestReview,
+    ) =>
+        post<import("./types").ApprovalRequestItem>(
+            `/approval-request/${encodeURIComponent(requestId)}/reject`,
+            payload || {},
+        ),
+
     // ---- 系统信息 ----
     getVersion: () => get<{ version: string }>("/version"),
 
     // ---- 批量操作 ----
     bulk: (ops: unknown) =>
         post<unknown>("/bulk", ops),
+
+    // ---- 实时事件流 ----
+    subscribeEvents: (handlers: RealtimeSubscribeHandlers): () => void =>
+        subscribeSseStream(() => `${getAdminUrl()}/events`, handlers, {
+            requireAuth: true,
+        }),
 };
 
 startTokenRefreshTimer();

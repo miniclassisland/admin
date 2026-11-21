@@ -3622,6 +3622,21 @@ html[data-theme="dark"] .fui-Button:has(> .fui-Button__icon:only-child:not(.f1ni
   }
 }
 
+.floating-inspector-header {
+  display: none;
+}
+
+@media (min-width: 769px) and (max-width: 1679px) {
+  .floating-inspector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
 /* 窄屏（移动设备 <= 768px）：全屏展示覆盖在页面上方 + 多级层级系统 */
 @media (max-width: 768px) {
   .clients-inspector-card {

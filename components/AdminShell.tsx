@@ -59,6 +59,7 @@ const globalNavGroups: NavGroup[] = [
             { label: "全局仪表盘", href: "/", icon: <Board24Regular /> },
             { label: "全局用户管理", href: "/users", icon: <People24Regular /> },
             { label: "注册审核", href: "/pending", icon: <PersonClock24Regular /> },
+            { label: "配额与权限审批", href: "/approvals", icon: <ShieldTask24Regular /> },
             { label: "租户账户与配额", href: "/accounts", icon: <BuildingMultiple24Regular /> },
             { label: "全局客户端管理", href: "/global-clients", icon: <PlugConnected24Regular /> },
             { label: "工单处理", href: "/tickets", icon: <Headset24Regular /> },
@@ -85,7 +86,7 @@ const TENANT_SETTINGS_ITEMS: NavItem[] = [
     { label: "邀请管理", href: "/invitations", icon: <PeopleAdd24Regular /> },
 ];
 
-const GLOBAL_PATHS = ["/", "/users", "/pending", "/accounts", "/global-clients", "/settings", "/tickets"];
+const GLOBAL_PATHS = ["/", "/users", "/pending", "/approvals", "/accounts", "/global-clients", "/settings", "/tickets"];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading, logout } = useAuth();
@@ -98,6 +99,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         TENANT_SETTINGS_ITEMS.some((i) => pathname === i.href || pathname.startsWith(i.href + "/"))
     );
     const [coreVersion, setCoreVersion] = useState("...");
+    const [pendingCount, setPendingCount] = useState(0);
+    const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
 
     useEffect(() => {
         setMobileMenuOpen(false);
@@ -125,6 +128,58 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             cancelled = true;
         };
     }, []);
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            setPendingCount(0);
+            setPendingApprovalsCount(0);
+            return;
+        }
+        let cancelled = false;
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const refreshPendingCounts = async () => {
+            try {
+                const [list, approvalRes] = await Promise.all([
+                    adminApi.listPendingUsers().catch(() => []),
+                    adminApi.getPendingApprovalRequestCount().catch(() => ({ count: 0 })),
+                ]);
+                if (!cancelled) {
+                    setPendingCount(Array.isArray(list) ? list.length : 0);
+                    setPendingApprovalsCount(typeof approvalRes?.count === "number" ? approvalRes.count : 0);
+                }
+            } catch {
+                /* ignore */
+            }
+        };
+        const scheduleRefresh = () => {
+            if (timer || cancelled) return;
+            timer = setTimeout(() => {
+                timer = null;
+                void refreshPendingCounts();
+            }, 250);
+        };
+        void refreshPendingCounts();
+        const unsubscribe = adminApi.subscribeEvents({
+            onEvent: (evt) => {
+                if (
+                    evt.event === "registration.created" ||
+                    evt.event === "registration.updated" ||
+                    evt.event === "approval_request.created" ||
+                    evt.event === "approval_request.updated"
+                ) {
+                    scheduleRefresh();
+                }
+            },
+        });
+        return () => {
+            cancelled = true;
+            unsubscribe();
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+        };
+    }, [isAuthenticated]);
 
     if (pathname === "/auth" || pathname === "/auth/" || pathname.startsWith("/oobe")) {
         return (
@@ -220,7 +275,17 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                         className={`sidebar-item ${isActive(item.href) ? "active" : ""}`}
                                     >
                                         {item.icon}
-                                        <span>{item.label}</span>
+                                        <span style={{ flex: 1 }}>{item.label}</span>
+                                        {item.href === "/pending" && pendingCount > 0 && (
+                                            <Badge appearance="filled" color="danger" size="small">
+                                                {pendingCount > 99 ? "99+" : pendingCount}
+                                            </Badge>
+                                        )}
+                                        {item.href === "/approvals" && pendingApprovalsCount > 0 && (
+                                            <Badge appearance="filled" color="danger" size="small">
+                                                {pendingApprovalsCount > 99 ? "99+" : pendingApprovalsCount}
+                                            </Badge>
+                                        )}
                                     </Link>
                                 ))}
                             </div>

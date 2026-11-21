@@ -66,9 +66,43 @@ export default function PendingUsersPage() {
         }
     }, []);
 
+    const refreshPendingSilent = useCallback(async () => {
+        try {
+            const list = await adminApi.listPendingUsers();
+            setUsers(Array.isArray(list) ? list : []);
+        } catch {
+            /* ignore background refresh errors */
+        }
+    }, []);
+
     useEffect(() => {
         loadPending();
     }, [loadPending]);
+
+    useEffect(() => {
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const scheduleRefresh = () => {
+            if (timer) return;
+            timer = setTimeout(() => {
+                timer = null;
+                void refreshPendingSilent();
+            }, 200);
+        };
+        const unsubscribe = adminApi.subscribeEvents({
+            onEvent: (evt) => {
+                if (evt.event === "registration.created" || evt.event === "registration.updated") {
+                    scheduleRefresh();
+                }
+            },
+        });
+        return () => {
+            unsubscribe();
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
+        };
+    }, [refreshPendingSilent]);
 
     const filteredUsers = useMemo(() => {
         return users.filter((u) =>
