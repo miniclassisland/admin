@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import Providers from "@/components/Providers";
+import ServiceWorkerRegistrar from "@/components/ServiceWorkerRegistrar";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "MINI ClassIsland 超级管理平台",
   description: "MINI ClassIsland 集中管理平台 - 超级管理员控制台",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "MINI CI Admin",
+  },
   icons: {
     icon: "/icon.svg",
   },
@@ -26,6 +32,7 @@ export default function RootLayout({
       </head>
       <body>
         <Providers>
+          <ServiceWorkerRegistrar />
           {children}
         </Providers>
       </body>

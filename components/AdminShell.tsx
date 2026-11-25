@@ -99,8 +99,29 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         TENANT_SETTINGS_ITEMS.some((i) => pathname === i.href || pathname.startsWith(i.href + "/"))
     );
     const [coreVersion, setCoreVersion] = useState("...");
+    const [cacheProgress, setCacheProgress] = useState<number | null>(null);
     const [pendingCount, setPendingCount] = useState(0);
     const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const init = (window as unknown as Record<string, unknown>).__mciCacheProgress as
+            | { status?: string; percent?: number }
+            | undefined;
+        if (init?.status === "updating" && typeof init.percent === "number") {
+            setCacheProgress(init.percent);
+        }
+        const onProgress = (e: Event) => {
+            const detail = (e as CustomEvent<{ status?: string; percent?: number }>).detail;
+            if (detail?.status === "updating") {
+                setCacheProgress(Math.max(0, Math.min(99, Number(detail.percent ?? 0))));
+            } else {
+                setCacheProgress(null);
+            }
+        };
+        window.addEventListener("mci-sw-cache-progress", onProgress);
+        return () => window.removeEventListener("mci-sw-cache-progress", onProgress);
+    }, []);
 
     useEffect(() => {
         setMobileMenuOpen(false);
@@ -406,7 +427,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                     </div>
 
                     <div className="sidebar-version-bar">
-                        网页版本 {ADMIN_VERSION} | 核心版本 {coreVersion}
+                        网页版本 {ADMIN_VERSION} | {cacheProgress !== null ? `核心更新中 ${cacheProgress}%` : `核心版本 ${coreVersion}`}
                     </div>
                 </div>
             </aside>
